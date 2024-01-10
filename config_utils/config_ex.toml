@@ -1,0 +1,19 @@
+[settings]
+learningRate = 0.001
+batchSize = 64
+numEpochs = 10
+architecture = 'FFN'
+
+# define network architecture
+# possible layer types are 'dense', 'lowRank', and 'vanillaLowRank'
+# possible activations are 'relu', 'linear', 'sigmoid', 'tanh'
+
+[[layer]]
+type = 'lowRank'
+dims = [784,512]
+activation = 'relu'
+rank = 5
+[[layer]]
+type = 'dense'
+dims=[512,10]
+activation = 'linear'
