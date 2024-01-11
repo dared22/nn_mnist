@@ -12,23 +12,26 @@ class VanillaLowRankLayer(nn.Module):
     Parameters
     ----------
     input_size : int
-        The size of each input sample.
-    hidden_size1 : int
-        The size of the first hidden layer.
-    hidden_size2 : int
-        The size of the second hidden layer.
+        The size of input.
     output_size : int
-        The size of each output sample.
+        The size of output.
+    rank : int
+        The rank of the low rank approximation.
 
     Attributes
     ----------
     weight1 : torch.nn.Parameter
-        The weight matrix between the input layer and the first hidden layer.
+        The first weight matrix of the layer with dimensions (input_size, rank). 
+        Initialized using He initialization suitable for ReLU activations.
     weight2 : torch.nn.Parameter
-        The weight matrix between the first and the second hidden layer.
+        The second weight matrix of the layer, a square matrix with dimensions (rank, rank).
+        Also initialized using He initialization.
     weight3 : torch.nn.Parameter
-        The weight matrix between the second hidden layer and the output layer.
-    """
+        The third weight matrix with dimensions (rank, output_size). Also initialized using He initialization
+    bias : torch.nn.Parameter
+        The bias parameter of the layer, with the same number of elements as the 
+        output_size. Initialized with random values from a standard normal distribution.
+        """
 
     def __init__(self, input_size, output_size, rank):
         super(VanillaLowRankLayer, self).__init__()
@@ -65,19 +68,3 @@ class VanillaLowRankLayer(nn.Module):
         x = x + self.bias  # Add the bias
 
         return x
-
-# Example usage
-input_size = 784
-output_size = 10
-rank = 5
-
-
-# Creating an instance of the custom layer
-vanilla_low_rank_layer = VanillaLowRankLayer(input_size, output_size, rank)
-
-# Example input tensor
-input_tensor = torch.randn(1, input_size)
-
-# Forward pass
-output = vanilla_low_rank_layer(input_tensor)
-print(output)
