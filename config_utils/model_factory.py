@@ -10,7 +10,7 @@ class ModelFactory:
         Parameters
         ----------
         config : ConfigParser
-            An instance of ConfigParser containing model configuration.
+            A dictionary containing configuration details.
 
         """
         self.config = config
@@ -117,12 +117,11 @@ class ModelFactory:
 
 
 # Example Usage
-# Assuming you have a ConfigParser instance with the path to the configuration file
 if __name__ == "__main__":
+    # Normal dense FFN
     from config_parser import ConfigParser
     path = '/Users/leoquentin/Documents/Programmering/project-inf202/config_utils/config_ex_ffn.toml'
     config_parser = ConfigParser(path)
     model_factory = ModelFactory(config_parser)
     model = model_factory.create_model()
     summary(model, (784,))
-
