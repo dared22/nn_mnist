@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torchsummary import summary
 
 class ModelFactory:
     def __init__(self, config):
@@ -117,6 +118,11 @@ class ModelFactory:
 
 # Example Usage
 # Assuming you have a ConfigParser instance with the path to the configuration file
-# config_parser = ConfigParser('path_to_config.toml')
-# model_factory = ModelFactory(config_parser)
-# model = model_factory.create_model()
+if __name__ == "__main__":
+    from config_parser import ConfigParser
+    path = '/Users/leoquentin/Documents/Programmering/project-inf202/config_utils/config_ex_ffn.toml'
+    config_parser = ConfigParser(path)
+    model_factory = ModelFactory(config_parser)
+    model = model_factory.create_model()
+    summary(model, (784,))
+

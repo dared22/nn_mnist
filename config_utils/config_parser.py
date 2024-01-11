@@ -1,8 +1,5 @@
 import toml
 
-import toml
-
-
 class ConfigParser:
     def __init__(self, path):
         """
