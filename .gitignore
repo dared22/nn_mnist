@@ -1,0 +1,3 @@
+# Ignore everything in the data directory except for MNIST_downloader.py
+data/*
+!data/MNIST_downloader.py
