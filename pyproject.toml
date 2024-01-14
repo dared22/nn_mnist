@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "lowrank"
+version = "0.1.0"
+description = ""
+authors = ["Leo Quentin Th. Bækholt <leo.quentin.thorbjornsen.bakholt@nmbu.no>"]
+readme = "README.md"
+packages = [{include = "lowrank", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = "^2.1.2"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.4"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
