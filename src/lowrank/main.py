@@ -1,15 +1,16 @@
-from simplenn import SimpleNeuralNetwork
-from trainer import Trainer
-from import_export import DataMover
-import matplotlib.pyplot as plt
-from MNIST_downloader import Downloader
 import torch
+import matplotlib.pyplot as plt
+from lowrank.training.neural_network import NeuralNetwork
+from lowrank.training.trainer import Trainer
+from lowrank.training.import_export import DataMover
+from lowrank.training.MNIST_downloader import Downloader
+
 
 n1 = 28**2
 n2 = 264
 n3 = 10
 
-NeuralNet = SimpleNeuralNetwork()
+NeuralNet = NeuralNetwork()
 
 trainer = Trainer(64)
 trained_nn = trainer.train(20, 0.01 , NeuralNet)
