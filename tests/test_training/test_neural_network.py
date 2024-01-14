@@ -42,7 +42,7 @@ def test_gradient_flow():
     assert input_tensor.grad is not None
 
 def test_output_for_known_input():
-    torch.maual_seed(0)     # for reproducibility
+    torch.manual_seed(0)     # for reproducibility
     layers = [nn.Linear(2, 2, bias=False)]
     for layer in layers:
         nn.init.eye_(layer.weight)  # Initializes with identity matrix
