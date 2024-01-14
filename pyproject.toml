@@ -9,6 +9,7 @@ packages = [{include = "lowrank", from = "src"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 torch = "^2.1.2"
+torchvision = "^0.16.2"
 
 
 [tool.poetry.group.dev.dependencies]

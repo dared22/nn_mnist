@@ -3,7 +3,7 @@ import torch.nn as nn
 
 class NeuralNetwork(nn.Module):
     def __init__(self, layers):
-        super.(NeuralNetwork, self).__init__()
+        super(NeuralNetwork, self).__init__()
 
         self.layers = nn.ModuleList(layers)
 

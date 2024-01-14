@@ -1,5 +1,5 @@
 import torch
-from vanilla_low_rank import VanillaLowRankLayer
+from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
 
 
 def test_instatiation():
