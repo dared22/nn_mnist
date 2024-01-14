@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from lowrank.LowRankTraining.neural_network import NeuralNetwork
+from lowrank.training.neural_network import NeuralNetwork
 
 def test_neural_network_instantation():
     # Test instantation with a simple configuration
