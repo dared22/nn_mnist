@@ -24,6 +24,23 @@ class Trainer:
 
     def __init__(self, batch_size):
         """
+        Initializes the Trainer class with the specified batch size and sets up data loaders for the MNIST dataset.
+
+        The function also initializes a TensorBoard SummaryWriter to log training and validation metrics.
+
+        Args:
+            batch_size (int): The number of samples per batch to be loaded in the DataLoader.
+        """
+        self.batchSize = batch_size
+        downloader = Downloader()
+        traindataset, testdataset = downloader.get_data()
+        self.trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
+        self.testloader = DataLoader(testdataset, batch_size=self.batchSize, shuffle=False)
+        self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
+        
+
+    def train(self, numIterations, lr, NeuralNet, patience=2):
+        """
         Trains a neural network model using the MNIST dataset.
 
         This method handles the training and validation process of a neural network. It employs 
@@ -45,15 +62,6 @@ class Trainer:
         does not improve, and training is stopped early if there is no improvement in validation accuracy 
         for a given number of epochs specified by 'patience'.
         """
-        self.batchSize = batch_size
-        downloader = Downloader()
-        traindataset, testdataset = downloader.get_data()
-        self.trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
-        self.testloader = DataLoader(testdataset, batch_size=self.batchSize, shuffle=False)
-        self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
-        
-
-    def train(self, numIterations, lr, NeuralNet, patience=2):
         optimizer = torch.optim.Adam(NeuralNet.parameters(), lr=lr)
         criterion = nn.CrossEntropyLoss()
         scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
