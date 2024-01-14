@@ -1,6 +1,6 @@
 import torch
 import matplotlib.pyplot as plt
-from lowrank.training.neural_network import NeuralNetwork
+from lowrank.training.neural_network import FeedForward
 from lowrank.training.trainer import Trainer
 from lowrank.training.import_export import DataMover
 from lowrank.training.MNIST_downloader import Downloader
