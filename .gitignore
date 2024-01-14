@@ -162,3 +162,5 @@ cython_debug/
 # Ignore everything in the data directory except for the MNIST_downloader.py
 data/*
 !data/MNIST_downloader.py
+#runs from TensorBoard
+runs/

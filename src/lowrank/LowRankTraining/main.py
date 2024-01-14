@@ -12,7 +12,7 @@ n3 = 10
 NeuralNet = SimpleNeuralNetwork()
 
 trainer = Trainer(64)
-trained_nn = trainer.train(7, 0.01 , NeuralNet)
+trained_nn = trainer.train(20, 0.01 , NeuralNet)
 #save trained model
 
 
