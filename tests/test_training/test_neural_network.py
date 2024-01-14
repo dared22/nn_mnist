@@ -23,14 +23,14 @@ def test_layer_composition():
     layers = [nn.Linear(10, 5), nn.ReLU(), nn.Linear(5, 2)]
     model = NeuralNetwork(layers)
     assert isinstance(model.layers[0], nn.Linear)
-    assert isinstance(model.layers[1]. nn.ReLU)
+    assert isinstance(model.layers[1], nn.ReLU)
     assert isinstance(model.layers[2], nn.Linear)
 
     # Check the parameters of the layers
 
     assert model.layers[0].in_features == 10
     assert model.layers[0].out_features == 5
-    assert model.layer[2].in_features == 5
+    assert model.layers[2].in_features == 5
     assert model.layers[2].out_features == 2
 
 def test_gradient_flow():
