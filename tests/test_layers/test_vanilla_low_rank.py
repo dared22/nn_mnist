@@ -23,12 +23,14 @@ def test_parameter_initalization():
     # He initialization standard deviation
     
     std_dev = (2. / input_size)**0.5
+    std_dev_tensor = torch.tensor(std_dev)
 
-    assert torch.allclose(layer.weight1.std(), std_dev, atol=1e-2)
-    assert torch.allclose(layer.weight2.std(), std_dev, atol=1e-2)
-    assert torch.allclose(layer.weight3.std(), std_dev, atol=1e-2)
+    assert torch.allclose(layer.weight1.std(), std_dev_tensor, atol=True)
+    assert torch.allclose(layer.weight2.std(), std_dev_tensor, atol=True)
+    assert torch.allclose(layer.weight3.std(), std_dev_tensor, atol=True)
     # Bias initalization check
     assert torch.mean(layer.bias).item() != 0 # just check id it's not all zeros
+
 
 def test_gradient_flow():
     input_size, output_size, rank = 10, 5, 3
