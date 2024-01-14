@@ -21,7 +21,9 @@ def test_parameter_initalization():
     input_size, output_size, rank = 10, 5, 3
     layer = VanillaLowRankLayer(input_size, output_size, rank)
     # He initialization standard deviation
+    
     std_dev = (2. / input_size)**0.5
+
     assert torch.allclose(layer.weight1.std(), std_dev, atol=1e-2)
     assert torch.allclose(layer.weight2.std(), std_dev, atol=1e-2)
     assert torch.allclose(layer.weight3.std(), std_dev, atol=1e-2)
