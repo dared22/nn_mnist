@@ -1,4 +1,11 @@
 import toml
+import torch
+import torch.nn as nn
+from typing import List
+from pathlib import Path
+from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
+from lowrank.layers.dense_layer import DenseLayer
+from lowrank.training.neural_network import NeuralNetwork
 
 class ConfigParser:
     def __init__(self, path):
@@ -18,87 +25,131 @@ class ConfigParser:
             Stores the loaded configuration data.
 
         """
-        self.path = path
-        self.config = self.load_config()
+        self.path: Path = path
+        self.learning_rate: float
+        self.batch_size: int
+        self.num_epochs: int
+        self.architecture: str
+        self.layers: list
+        self.load_config()
 
     def load_config(self):
         """
-        Load the configuration from the TOML file.
-
-        Returns
-        -------
-        dict or None
-            The configuration dictionary if file is successfully loaded, 
-            otherwise None.
-
-        Raises
-        ------
-        FileNotFoundError
-            If the configuration file does not exist at the specified path.
-
+        Load and parse the configuration from the TOML file. If value is not found, use default value.
         """
         try:
             with open(self.path, 'r') as file:
-                return toml.load(file)
+                config = toml.load(file)
+                self.learning_rate = config['settings'].get('learningRate', 3e-4)
+                self.batch_size = config['settings'].get('batchSize', 64)
+                self.num_epochs = config['settings'].get('numEpochs', 10)
+                self.architecture = config['settings'].get('architecture', 'ffn').lower().strip()
+                self.layers_config = config.get('layer', [])
         except FileNotFoundError as e:
             print(f"Error: {e}")
+
+    def create_model(self):
+        """
+        Create a neural network model based on the loaded configuration.
+
+        Returns
+        -------
+        model : torch.nn.Module
+            The constructed neural network model.
+        """
+        if self.architecture == 'ffn':
+            return self.create_ffn()
+        
+        else:
+            print(f"Unknown model type: {self.architecture}")
             return None
-
-    def save(self):
+        
+    def get_layer_params(self, layer_config, required_params):
         """
-        Save the current configuration back to the TOML file.
+        Helper function to extract required parameters from layer_config.
+        Returns None if any required parameter is missing.
+        """
+        params = {param: layer_config.get(param, None) for param in required_params}
+        if any(value is None for value in params.values()):
+            print(f"Missing parameters for {layer_config['type']} layer: {params}")
+            return None
+        params['activation'] = self.get_activation(layer_config.get('activation', None))
+        return params
 
-        Raises
-        ------
-        Exception
-            If an error occurs during file writing.
+    def create_layer(self, layer_config):
+        """
+        Create a layer based on the layer configuration.
+        """
+        layer_type = layer_config.get('type', 'linear').strip().lower()
+
+        if layer_type == 'dense':
+            params = self.get_layer_params(layer_config, ["dims"])
+            if params is not None:
+                input_size, output_size = params['dims']
+                return DenseLayer(input_size, output_size, params['activation'])
+                
+        elif layer_type == 'lowrank':
+            params = self.get_layer_params(layer_config, ["dims", 'rank'])
+            if params is not None:
+                input_size, output_size = params['dims']
+                return VanillaLowRankLayer(input_size, output_size, params['rank'], params['activation'])
+    
+    def create_multiple_layers(self):
+        """
+        Create a Feed Forward Network (FFN) based on the layer configuration.
+
+        Returns
+        -------
+        model : torch.nn.Module
+            The constructed FFN.
+        """
+        layers = []
+        for layer_config in self.layers_config:
+            layer = self.create_layer(layer_config)
+            if layer:
+                layers.append(layer)
+
+        return layers
+    
+    def create_ffn(self):
+        """
+        Create a Feed Forward Network (FFN) based on the layer configuration.
+
+        Returns
+        -------
+        model : torch.nn.Module
+            The constructed FFN.
+        """
+        layers = self.create_multiple_layers()
+        return NeuralNetwork(layers)
+
+    def get_activation(self, activation_name):
+        """
+        Get the activation function based on its name.
+
+        Parameters
+        ----------
+        activation_name : str
+            The name of the activation function.
+
+        Returns
+        -------
+        activation : torch.nn.Module
+            The corresponding PyTorch activation function.
 
         """
+        activations = {
+            'relu': nn.ReLU(),
+            'linear': nn.Identity(),
+            'sigmoid': nn.Sigmoid(),
+            'tanh': nn.Tanh()
+        }
         try:
-            with open(self.path, 'w') as file:
-                toml.dump(self.config, file)
-        except Exception as e:
-            print(f"Error saving configuration: {e}")
+            return activations[activation_name]
+        except KeyError:
+            print(f"Unknown activation function: {activation_name}")
 
-    def __getitem__(self, key):
-        """
-        Retrieve a value from the configuration.
-
-        Parameters
-        ----------
-        key : str
-            The key for the value to be retrieved from the configuration.
-
-        Returns
-        -------
-        value
-            The value associated with the specified key. Returns None if key is not found.
-
-        """
-        return self.config.get(key, None)
-
-    def __setitem__(self, key, value):
-        """
-        Set a value in the configuration.
-
-        Parameters
-        ----------
-        key : str
-            The key for which the value needs to be set in the configuration.
-        value
-            The value to be set for the specified key.
-
-        """
-        self.config[key] = value
-
-    def get_config(self):
-        """
-        Return the entire configuration.
-
-        Returns
-        -------
-        dict
-            The complete configuration dictionary.
-
-        """
-        return self.config
+if __name__ == "__main__":
+    config = ConfigParser('/Users/leoquentin/Documents/Programmering/project-inf202/src/lowrank/config_utils/config_ex_ffn_low_rank.toml')
+    model = config.create_model()
+    print(model)
