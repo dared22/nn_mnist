@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from lowrank.training.MNIST_downloader import Downloader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from lowrank.optimizers.SGD import SimpleSGD  
 
 class Trainer:
     """
@@ -63,7 +64,7 @@ class Trainer:
         does not improve, and training is stopped early if there is no improvement in validation accuracy 
         for a given number of epochs specified by 'patience'.
         """
-        optimizer = torch.optim.Adam(NeuralNet.parameters(), lr=lr)
+        optimizer = SimpleSGD(NeuralNet.parameters(), lr=lr)
         criterion = nn.CrossEntropyLoss()
         scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
         best_accuracy = 0.0
@@ -106,7 +107,7 @@ class Trainer:
             self.writer.add_scalar('Validation Loss', validation_loss, epoch)
 
             # Early stopping check
-            if self.early_stopping(train_loss, validation_loss, min_delta=0.1, tolerance=3):
+            if self.early_stopping(train_loss, validation_loss, min_delta=0.0001, tolerance=3):
                 print("Early stopping triggered at epoch:", epoch + 1)
                 break
 
@@ -132,7 +133,7 @@ class Trainer:
         Returns:
             bool: True if early stopping criteria are met, False otherwise.
         """
-        if validation_loss - train_loss > min_delta:
+        if (validation_loss - train_loss) > min_delta:
             self.early_stopping_counter += 1
             if self.early_stopping_counter >= tolerance:
                 return True
