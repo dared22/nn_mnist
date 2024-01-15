@@ -5,7 +5,6 @@ from typing import List
 from pathlib import Path
 from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
 from lowrank.layers.dense_layer import DenseLayer
-from lowrank.training.neural_network import NeuralNetwork
 
 class ConfigParser:
     def __init__(self, path):
@@ -47,22 +46,6 @@ class ConfigParser:
                 self.layers_config = config.get('layer', [])
         except FileNotFoundError as e:
             print(f"Error: {e}")
-
-    def create_model(self):
-        """
-        Create a neural network model based on the loaded configuration.
-
-        Returns
-        -------
-        model : torch.nn.Module
-            The constructed neural network model.
-        """
-        if self.architecture == 'ffn':
-            return self.create_ffn()
-        
-        else:
-            print(f"Unknown model type: {self.architecture}")
-            return None
         
     def get_layer_params(self, layer_config, required_params):
         """
@@ -110,18 +93,6 @@ class ConfigParser:
                 layers.append(layer)
 
         return layers
-    
-    def create_ffn(self):
-        """
-        Create a Feed Forward Network (FFN) based on the layer configuration.
-
-        Returns
-        -------
-        model : torch.nn.Module
-            The constructed FFN.
-        """
-        layers = self.create_multiple_layers()
-        return NeuralNetwork(layers)
 
     def get_activation(self, activation_name):
         """
