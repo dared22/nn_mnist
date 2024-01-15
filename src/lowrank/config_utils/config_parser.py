@@ -92,6 +92,7 @@ class ConfigParser:
             if layer:
                 layers.append(layer)
 
+        self.layers = layers
         return layers
 
     def get_activation(self, activation_name):
