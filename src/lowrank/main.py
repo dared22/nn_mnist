@@ -1,17 +1,10 @@
 import torch
-import matplotlib.pyplot as plt
 from lowrank.training.neural_network import FeedForward
 from lowrank.training.trainer import Trainer
 from lowrank.training.import_export import DataMover
 from lowrank.training.MNIST_downloader import Downloader
-from lowrank.training.neural_network import NeuralNetwork
 
-
-n1 = 28**2
-n2 = 264
-n3 = 10
-
-NeuralNet = NeuralNetwork.()
+NeuralNet = FeedForward.create_from_config("tests/data/config_ex_ffn.toml")
 
 trainer = Trainer(64)
 trained_nn = trainer.train(20, 0.01 , NeuralNet)

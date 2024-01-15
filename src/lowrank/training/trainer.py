@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from MNIST_downloader import Downloader
+from lowrank.training.MNIST_downloader import Downloader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 class Trainer:
@@ -37,9 +37,10 @@ class Trainer:
         self.trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
         self.testloader = DataLoader(testdataset, batch_size=self.batchSize, shuffle=False)
         self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
+        self.early_stopping_counter = 0
         
 
-    def train(self, numIterations, lr, NeuralNet, patience=2):
+    def train(self, numIterations, lr, NeuralNet):
         """
         Trains a neural network model using the MNIST dataset.
 
@@ -65,11 +66,11 @@ class Trainer:
         optimizer = torch.optim.Adam(NeuralNet.parameters(), lr=lr)
         criterion = nn.CrossEntropyLoss()
         scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
-        early_stopping = EarlyStopping(patience=patience)  # Early stopping
         best_accuracy = 0.0
 
 
-        for i in range(numIterations):
+        for epoch in range(numIterations):
+            train_loss = 0.0
             NeuralNet.train()  # Set the model to training mode
             for step, (images, labels) in enumerate(self.trainloader):
                 optimizer.zero_grad()
@@ -77,88 +78,65 @@ class Trainer:
                 loss = criterion(out, labels)
                 loss.backward()
                 optimizer.step()
+                train_loss += loss.item()
         
                 if (step + 1) % 100 == 0:
-                    print(f'Epoch [{i+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
-                    self.writer.add_scalar('Training Loss', loss.item(), i*len(self.trainloader) + step)
+                    print(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+                    self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
+                
+            train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
 
             NeuralNet.eval()  # Set the model to evaluation mode
+            validation_loss = 0.0
             correct = 0
             total = 0
             with torch.no_grad():
                 for images, labels in self.testloader:
                     outputs = NeuralNet(images)
+                    loss = criterion(outputs, labels)
+                    validation_loss += loss.item()
                     _, predicted = torch.max(outputs.data, 1)
                     total += labels.size(0)
                     correct += (predicted == labels).sum().item()
-
+            # Calculate average validation loss and accuracy
+            validation_loss /= len(self.testloader)
             accuracy = correct / total
-            print(f'Epoch [{i+1}/{numIterations}], Validation Accuracy: {100 * accuracy:.2f}%')
-            self.writer.add_scalar('Validation Accuracy', accuracy, i+1)
+            print(f'Epoch [{epoch+1}/{numIterations}], Validation Accuracy: {100 * accuracy:.2f}%, Validation Loss: {validation_loss:.4f}')
+            self.writer.add_scalar('Validation Accuracy', accuracy, epoch)
+            self.writer.add_scalar('Validation Loss', validation_loss, epoch)
 
+            # Early stopping check
+            if self.early_stopping(train_loss, validation_loss, min_delta=0.1, tolerance=3):
+                print("Early stopping triggered at epoch:", epoch + 1)
+                break
+
+            # Check if current model is the best
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
-                torch.save(NeuralNet.state_dict(), f'./data/last_checkpoint_epoch.pt')
+                torch.save(NeuralNet.state_dict(), f'./data/best_model_epoch_{epoch+1}.pt')
 
-            scheduler.step(accuracy)  # Adjust learning rate based on validation accuracy
-            early_stopping(accuracy, NeuralNet)  # Check early stopping condition
-
-            if early_stopping.early_stop:
-                print("Early stopping")
-                break
+            # Adjust learning rate based on validation loss
+            scheduler.step(validation_loss)
 
         self.writer.close()  # Close the TensorBoard writer
         return NeuralNet
 
-class EarlyStopping:
-    """
-    A utility class for early stopping during the training of a neural network.
-
-    This class is used to stop the training process if the validation metric 
-    stops improving after a certain number of epochs. It is a form of regularization 
-    used to prevent overfitting.
-
-    Attributes:
-        patience (int): Number of epochs to wait for improvement before stopping the training.
-        counter (int): Counter that keeps track of how many epochs have passed without improvement.
-        best_score (float, optional): The best score achieved by the model so far. Default is None.
-        early_stop (bool): Flag indicating whether early stopping criteria were met and training should stop.
-        delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-    """
-
-    def __init__(self, patience, delta=0):
+    def early_stopping(self, train_loss, validation_loss, min_delta, tolerance):
         """
-        Initializes the EarlyStopping instance.
-
+        Checks if early stopping criteria are met.
         Args:
-            patience (int): Number of epochs to wait for an improvement in the monitored metric.
-            delta (float): Minimum change in the monitored quantity to qualify as an improvement. Default is 0.
+            train_loss (float): Training loss of the current epoch.
+            validation_loss (float): Validation loss of the current epoch.
+            min_delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+            tolerance (int): The number of epochs with no improvement after which training will be stopped.
+        Returns:
+            bool: True if early stopping criteria are met, False otherwise.
         """
-        self.patience = patience
-        self.counter = 0
-        self.best_score = None
-        self.early_stop = False
-        self.delta = delta
-
-    def __call__(self, val_accuracy):
-        """
-        Call method to update the early stopping mechanism.
-
-        This method should be called at the end of each epoch with the current 
-        validation metric. It will compare the current score with the best score 
-        and update the counter or reset it based on the improvement.
-
-        Args:
-            val_accuracy (float): The current validation accuracy of the model.
-        """
-        score = val_accuracy
-
-        if self.best_score is None:
-            self.best_score = score
-        elif score < self.best_score + self.delta:
-            self.counter += 1
-            if self.counter >= self.patience:
-                self.early_stop = True
+        if validation_loss - train_loss > min_delta:
+            self.early_stopping_counter += 1
+            if self.early_stopping_counter >= tolerance:
+                return True
         else:
-            self.best_score = score
-            self.counter = 0
+            self.early_stopping_counter = 0  # Reset counter if improvement is observed
+
+        return False

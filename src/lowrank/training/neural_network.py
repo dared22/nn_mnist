@@ -5,11 +5,12 @@ from lowrank.config_utils.config_parser import ConfigParser
 class FeedForward(nn.Module):
     def __init__(self, layers):
         super(FeedForward, self).__init__()
-
+        self.flatten = nn.Flatten()
         self.layers = nn.ModuleList(layers)
 
     def forward(self, X):
         for layer in self.layers:
+            X = self.flatten(X)
             X = layer(X)
         return X
 
