@@ -44,6 +44,7 @@ class ConfigParser:
                 self.num_epochs = config['settings'].get('numEpochs', 10)
                 self.architecture = config['settings'].get('architecture', 'ffn').lower().strip()
                 self.layers_config = config.get('layer', [])
+                self.create_multiple_layers()
         except FileNotFoundError as e:
             print(f"Error: {e}")
         
