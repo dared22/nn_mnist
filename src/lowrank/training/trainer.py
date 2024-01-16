@@ -5,6 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from lowrank.training.MNIST_downloader import Downloader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from lowrank.optimizers.SGD import SimpleSGD  
+from tqdm import tqdm
 
 class Trainer:
     """
@@ -73,7 +74,10 @@ class Trainer:
         for epoch in range(numIterations):
             train_loss = 0.0
             NeuralNet.train()  # Set the model to training mode
-            for step, (images, labels) in enumerate(self.trainloader):
+
+            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{numIterations}')
+
+            for step, (images, labels) in enumerate(train_loader_progress):
                 optimizer.zero_grad()
                 out = NeuralNet(images)
                 loss = criterion(out, labels)
@@ -81,6 +85,8 @@ class Trainer:
                 optimizer.step()
                 train_loss += loss.item()
         
+                train_loader_progress.set_description(f'Epoch [{i+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+
                 if (step + 1) % 100 == 0:
                     print(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
                     self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
