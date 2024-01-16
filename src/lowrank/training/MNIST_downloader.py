@@ -1,6 +1,5 @@
 import torch
 from torchvision import datasets, transforms
-import os
 
 class Downloader:
     """
