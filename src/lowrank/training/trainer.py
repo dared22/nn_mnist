@@ -4,7 +4,9 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from lowrank.training.MNIST_downloader import Downloader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from lowrank.optimizers.SGD import SimpleSGD  
+from lowrank.optimizers.SGD import SimpleSGD
+from lowrank.config_utils.config_parser import ConfigParser
+from torchinfo import summary
 
 class Trainer:
     """
@@ -24,7 +26,7 @@ class Trainer:
         early_stopping: Method checks if the validation loss does not improve beyond a certain threshold (min_delta) for a specified number of epochs (tolerance).
     """
 
-    def __init__(self, batch_size):
+    def __init__(self):
         """
         Initializes the Trainer class with the specified batch size and sets up data loaders for the MNIST dataset.
 
@@ -33,7 +35,13 @@ class Trainer:
         Args:
             batch_size (int): The number of samples per batch to be loaded in the DataLoader.
         """
-        self.batchSize = batch_size
+        configparser = ConfigParser("tests/data/config_ex_ffn.toml")
+        configparser.load_config()
+        self.batchSize = configparser.batch_size
+        self.numIterations = configparser.num_epochs
+        self.lr = configparser.learning_rate
+        layer1_config = configparser.layers_config[0]
+        self.features = configparser.get_layer_params(layer1_config, ['dims'])['dims'][0] 
         downloader = Downloader()
         traindataset, testdataset = downloader.get_data()
         self.trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
@@ -42,7 +50,7 @@ class Trainer:
         self.early_stopping_counter = 0
         
 
-    def train(self, numIterations, lr, NeuralNet):
+    def train(self, NeuralNet):
         """
         Trains a neural network model using the MNIST dataset.
 
@@ -65,13 +73,13 @@ class Trainer:
         does not improve, and training is stopped early if there is no improvement in validation accuracy 
         for a given number of epochs specified by 'patience'.
         """
-        optimizer = SimpleSGD(NeuralNet.parameters(), lr=lr)
+        optimizer = SimpleSGD(NeuralNet.parameters(), lr=self.lr)
         criterion = nn.CrossEntropyLoss()
         scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
         best_accuracy = 0.0
 
 
-        for epoch in range(numIterations):
+        for epoch in range(self.numIterations):
             train_loss = 0.0
             NeuralNet.train()  # Set the model to training mode
             for step, (images, labels) in enumerate(self.trainloader):
@@ -83,7 +91,7 @@ class Trainer:
                 train_loss += loss.item()
         
                 if (step + 1) % 100 == 0:
-                    print(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+                    print(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
                     self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
                 
             train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
@@ -103,7 +111,7 @@ class Trainer:
             # Calculate average validation loss and accuracy
             validation_loss /= len(self.testloader)
             accuracy = correct / total
-            print(f'Epoch [{epoch+1}/{numIterations}], Validation Accuracy: {100 * accuracy:.2f}%, Validation Loss: {validation_loss:.4f}')
+            print(f'Epoch [{epoch+1}/{self.numIterations}], Validation Accuracy: {100 * accuracy:.2f}%, Validation Loss: {validation_loss:.4f}')
             self.writer.add_scalar('Validation Accuracy', accuracy, epoch)
             self.writer.add_scalar('Validation Loss', validation_loss, epoch)
 
@@ -115,12 +123,13 @@ class Trainer:
             # Check if current model is the best
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
-                torch.save(NeuralNet.state_dict(), f'./data/last_best_at_epoch_{epoch+1}.pt')
+                torch.save(NeuralNet.state_dict(), f'./data/best_model_at_epoch_{epoch+1}.pt')
 
             # Adjust learning rate based on validation loss
             scheduler.step(validation_loss)
 
         self.writer.close()  # Close the TensorBoard writer
+        summary(NeuralNet, input_size=(self.batchSize,self.features))
         return NeuralNet
 
     def early_stopping(self, train_loss, validation_loss, min_delta, tolerance):
@@ -143,3 +152,4 @@ class Trainer:
 
         return False
     
+
