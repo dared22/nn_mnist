@@ -85,7 +85,7 @@ class Trainer:
                 optimizer.step()
                 train_loss += loss.item()
         
-                train_loader_progress.set_description(f'Epoch [{i+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+                train_loader_progress.set_description(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
 
                 if (step + 1) % 100 == 0:
                     print(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
