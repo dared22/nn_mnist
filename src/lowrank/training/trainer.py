@@ -21,6 +21,9 @@ class Trainer:
 
     Methods:
         train: Trains a neural network model and evaluates its performance on the test dataset.
+        early_stopping: Method checks if the validation loss does not improve beyond a certain threshold (min_delta) for a specified number of epochs (tolerance).
+        import_model: Imports a neural network model's state dictionary from the specified path.
+        export_model: Exports a trained neural network model's state dictionary to the specified path.
     """
 
     def __init__(self, batch_size):
@@ -114,7 +117,7 @@ class Trainer:
             # Check if current model is the best
             if accuracy > best_accuracy:
                 best_accuracy = accuracy
-                torch.save(NeuralNet.state_dict(), f'./data/best_model_epoch_{epoch+1}.pt')
+                torch.save(NeuralNet.state_dict(), f'./data/last_best_model.pt')
 
             # Adjust learning rate based on validation loss
             scheduler.step(validation_loss)
@@ -141,3 +144,4 @@ class Trainer:
             self.early_stopping_counter = 0  # Reset counter if improvement is observed
 
         return False
+    
