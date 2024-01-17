@@ -18,8 +18,7 @@ def predict(model, pic_nr):
             # Make the prediction
         output = model(tensor)
         prediction = output.argmax()  # Getting the most likely class
-
-    return prediction, label
+    return prediction.item(), label.item()
 
 def show_image(tensor):
     transform = T.ToPILImage()
