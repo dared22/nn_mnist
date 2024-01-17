@@ -48,6 +48,7 @@ class Trainer:
         self.testloader = DataLoader(testdataset, batch_size=self.batchSize, shuffle=False)
         self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
         self.early_stopping_counter = 0
+        self.accuracy = ()
         
 
     def train(self, NeuralNet):
@@ -115,20 +116,23 @@ class Trainer:
             self.writer.add_scalar('Validation Accuracy', accuracy, epoch)
             self.writer.add_scalar('Validation Loss', validation_loss, epoch)
 
+            # Check if current model is the best
+            if accuracy > best_accuracy:
+                self.accuracy = (accuracy,(epoch+1))
+                best_accuracy = accuracy
+                torch.save(NeuralNet.state_dict(), f'./data/best_model_at_epoch_{epoch+1}.pt')
+
             # Early stopping check
             if self.early_stopping(train_loss, validation_loss, min_delta=0.0001, tolerance=3):
                 print("Early stopping triggered at epoch:", epoch + 1)
                 break
 
-            # Check if current model is the best
-            if accuracy > best_accuracy:
-                best_accuracy = accuracy
-                torch.save(NeuralNet.state_dict(), f'./data/best_model_at_epoch_{epoch+1}.pt')
 
             # Adjust learning rate based on validation loss
             scheduler.step(validation_loss)
 
         self.writer.close()  # Close the TensorBoard writer
+        print(f'The best accuracy was achieved at epoch nr.{self.accuracy[1]} with validation accuracy {100*self.accuracy[0]:.2f}%')
         summary(NeuralNet, input_size=(self.batchSize,self.features))
         return NeuralNet
 
