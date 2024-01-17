@@ -9,6 +9,7 @@ from tqdm import tqdm
 from lowrank.optimizers.SGD import SimpleSGD
 from lowrank.config_utils.config_parser import ConfigParser
 from torchinfo import summary
+from lowrank.optimizers.MultiOptim import MetaOptimizer
 
 class Trainer:
     """
@@ -76,9 +77,9 @@ class Trainer:
         does not improve, and training is stopped early if there is no improvement in validation accuracy 
         for a given number of epochs specified by 'patience'.
         """
-        optimizer = SimpleSGD(NeuralNet.parameters(), lr=self.lr)
+        optimizer = MetaOptimizer(NeuralNet)
         criterion = nn.CrossEntropyLoss()
-        scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
+        # scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
         best_accuracy = 0.0
 
 
@@ -136,7 +137,7 @@ class Trainer:
 
 
             # Adjust learning rate based on validation loss
-            scheduler.step(validation_loss)
+            # scheduler.step(validation_loss)
 
         self.writer.close()  # Close the TensorBoard writer
         print(f'The best accuracy was achieved at epoch nr.{self.accuracy[1]} with validation accuracy {100*self.accuracy[0]:.2f}%')
