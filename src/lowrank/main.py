@@ -20,23 +20,23 @@ NeuralNet.export_model(trained_nn,path)
 
 
 # Load the dataset
-downloader = Downloader()
-train, test = downloader.get_data()
-mnist_tensors = test.data
-mnist_labels = test.targets  # Assuming this is how you get the labels
-
-
-# Load the trained model
-trained_model = NeuralNet  # Creating an instance of the model
-NeuralNet.import_model(trained_model, path) # Loading the trained weights into the model
-trained_model.eval()  # Setting the model to evaluation mode
-
-
-# Predict numbers from MNIST dataset
-mnist_predictions = predict(trained_model, mnist_tensors)
-
-# Outputting predictions and labels
-for idx, (prediction, label) in enumerate(zip(mnist_predictions, mnist_labels)):
-    print(f"Image {idx}: Predicted number is {prediction}, Actual Label: {label}")
-
-#show_image(mnist_tensors[9946])
+#downloader = Downloader()
+#train, test = downloader.get_data()
+#mnist_tensors = test.data
+#mnist_labels = test.targets  # Assuming this is how you get the labels
+#
+#
+## Load the trained model
+#trained_model = NeuralNet  # Creating an instance of the model
+#NeuralNet.import_model(trained_model, path) # Loading the trained weights into the model
+#trained_model.eval()  # Setting the model to evaluation mode
+#
+#
+## Predict numbers from MNIST dataset
+#mnist_predictions = predict(trained_model, mnist_tensors)
+#
+## Outputting predictions and labels
+#for idx, (prediction, label) in enumerate(zip(mnist_predictions, mnist_labels)):
+#    print(f"Image {idx}: Predicted number is {prediction}, Actual Label: {label}")
+#
+##show_image(mnist_tensors[9946])

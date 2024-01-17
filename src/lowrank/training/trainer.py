@@ -86,7 +86,7 @@ class Trainer:
             train_loss = 0.0
             NeuralNet.train()  # Set the model to training mode
 
-            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{numIterations}')
+            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
 
             for step, (images, labels) in enumerate(train_loader_progress):
                 optimizer.zero_grad()
@@ -99,7 +99,7 @@ class Trainer:
     
 
                 if (step + 1) % 100 == 0:
-                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
                     self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
                 
             train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
