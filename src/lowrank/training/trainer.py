@@ -85,10 +85,10 @@ class Trainer:
                 optimizer.step()
                 train_loss += loss.item()
         
-                train_loader_progress.set_description(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+    
 
                 if (step + 1) % 100 == 0:
-                    print(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
                     self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
                 
             train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
