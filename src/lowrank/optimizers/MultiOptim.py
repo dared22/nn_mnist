@@ -12,6 +12,12 @@ class MetaOptimizer():
         self.s_params = [] # Collect S parameters from DynamicLowRankLayers
         self.default_optimizer_params = []
         self.default_optimizer = None
+        if optimizer_config is None:
+            optimizer_config = {
+                "default": (SimpleSGD, {'lr': 3e-4}),
+                DynamicLowRankLayer: (DynamicLowRankOptimizer, {'lr': 3e-4}),
+                # Other layer types and their optimizers (if any)
+            }
         
         for name, layer in model.named_modules():
             if layer == model: # Skip the model itself so it doesn't get assigned to default optimizer (which breaks everything)
