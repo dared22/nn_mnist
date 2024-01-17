@@ -8,9 +8,9 @@ import torch
 NeuralNet = FeedForward.create_from_config("tests/data/config_ex_ffn.toml")
 
 
-#trainer = Trainer()
-#trained_nn = trainer.train(NeuralNet)
-##save trained model
+trainer = Trainer()
+trained_nn = trainer.train(NeuralNet)
+#save trained model
 #
 #
 path =  './data/trained_model.pt'

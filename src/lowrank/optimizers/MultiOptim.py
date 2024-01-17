@@ -41,7 +41,7 @@ class MetaOptimizer():
                 if any(layer.named_parameters()):
                     # print(layer)
                     self.default_optimizer_params.extend(layer.parameters())
-            if len(self.default_optimizer_params) > 0:
+            if len(self.default_optimizer_params) > 0 and self.default_optimizer is None:
                 optimizer_class, optimizer_args = optimizer_config["default"]
                 self.default_optimizer = optimizer_class(layer.parameters(), **optimizer_args)
 
