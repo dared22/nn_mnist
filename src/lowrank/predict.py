@@ -1,20 +1,25 @@
 import torch
 import torchvision.transforms as T
 from PIL import Image
+from lowrank.training.MNIST_downloader import Downloader
 
-def predict(model, data):
-    predictions = []
+def predict(model, pic_nr):
+    downloader = Downloader()
+    train, test = downloader.get_data()
+    mnist_tensors = test.data
+    mnist_labels = test.targets
+    tensor = mnist_tensors[pic_nr]
+    label = mnist_labels[pic_nr] 
     with torch.no_grad():  # Disable gradient calculations for prediction
-        for tensor in data:
-            # Preprocess the tensor (e.g., normalization, adding batch dimension)
-            tensor = tensor.float() / 255.0  # Assuming MNIST images are in grayscale
-            tensor = tensor.unsqueeze(0)  # Adding a batch dimension
+        # Preprocess the tensor (e.g., normalization, adding batch dimension)
+        tensor = tensor.float() / 255.0  # Assuming MNIST images are in grayscale
+        tensor = tensor.unsqueeze(0)  # Adding a batch dimension
 
             # Make the prediction
-            output = model(tensor)
-            prediction = output.argmax()  # Getting the most likely class
-            predictions.append(prediction.item())  # Storing the predicted number
-    return predictions
+        output = model(tensor)
+        prediction = output.argmax()  # Getting the most likely class
+
+    return prediction, label
 
 def show_image(tensor):
     transform = T.ToPILImage()
