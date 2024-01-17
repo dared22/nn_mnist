@@ -4,6 +4,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from lowrank.training.MNIST_downloader import Downloader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from lowrank.optimizers.SGD import SimpleSGD  
+from tqdm import tqdm
 from lowrank.optimizers.SGD import SimpleSGD
 from lowrank.config_utils.config_parser import ConfigParser
 from torchinfo import summary
@@ -82,7 +84,10 @@ class Trainer:
         for epoch in range(self.numIterations):
             train_loss = 0.0
             NeuralNet.train()  # Set the model to training mode
-            for step, (images, labels) in enumerate(self.trainloader):
+
+            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{numIterations}')
+
+            for step, (images, labels) in enumerate(train_loader_progress):
                 optimizer.zero_grad()
                 out = NeuralNet(images)
                 loss = criterion(out, labels)
@@ -90,8 +95,10 @@ class Trainer:
                 optimizer.step()
                 train_loss += loss.item()
         
+    
+
                 if (step + 1) % 100 == 0:
-                    print(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
                     self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
                 
             train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
