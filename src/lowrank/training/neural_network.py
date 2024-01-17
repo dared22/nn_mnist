@@ -26,6 +26,8 @@ class FeedForward(nn.Module):
     
     create_from_config(path)
         Static method to create a FeedForward instance from a configuration file.
+    export_model(path) 
+        Exports a trained neural network model's state dictionary to the specified path.
     """
 
     def __init__(self, layers):
@@ -88,5 +90,28 @@ class FeedForward(nn.Module):
         # Extract layers from the configuration
         # Create an instance of FeedForward with these layers
         return FeedForward(config_parser.create_multiple_layers())
+    
+
+    def export_model(self, trained_nn, path):
+        """
+        Exports a trained neural network model's state dictionary to the specified path.
+
+        Args:
+            trained_nn (torch.nn.Module): The trained neural network model whose state dictionary is to be saved.
+        """
+        torch.save(trained_nn.state_dict(), path)
+
+    def import_model(self,model, path): #not working for some reason!!!
+        """
+        Imports a neural network model's state dictionary from the specified path.
+
+        Args:
+            nn (class): The neural network class to be instantiated and loaded.
+
+        Returns:
+            The loaded neural network model with its state dictionary imported from the file.
+        """ 
+        model.load_state_dict(torch.load(path))
+  
     
 
