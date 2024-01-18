@@ -10,6 +10,7 @@ from lowrank.optimizers.SGD import SimpleSGD
 from lowrank.config_utils.config_parser import ConfigParser
 from torchinfo import summary
 from lowrank.optimizers.MultiOptim import MetaOptimizer
+from datetime import datetime
 
 class Trainer:
     """
@@ -81,6 +82,7 @@ class Trainer:
         criterion = nn.CrossEntropyLoss()
         # scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
         best_accuracy = 0.0
+        start_time = int(datetime.now().strftime('%M%S'))
 
 
         for epoch in range(self.numIterations):
@@ -132,14 +134,20 @@ class Trainer:
 
             # Early stopping check
             if self.early_stopping(train_loss, validation_loss, min_delta=0.0001, tolerance=3):
+                finish_time = int(datetime.now().strftime('%M%S'))
                 print("Early stopping triggered at epoch:", epoch + 1)
                 break
 
 
             # Adjust learning rate based on validation loss
-            # scheduler.step(validation_loss)
+            #scheduler.step(validation_loss)
 
         self.writer.close()  # Close the TensorBoard writer
+        finish_time = int(datetime.now().strftime('%M%S'))
+        time_used = finish_time - start_time
+        min = time_used // 60
+        sec = time_used % 60
+        print(f'Training completed in {min}min {sec}s.')
         print(f'The best accuracy was achieved at epoch nr.{self.accuracy[1]} with validation accuracy {100*self.accuracy[0]:.2f}%')
         summary(NeuralNet, input_size=(self.batchSize,self.features))
         return NeuralNet
