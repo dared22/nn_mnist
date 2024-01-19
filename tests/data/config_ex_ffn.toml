@@ -9,9 +9,10 @@ architecture = 'FFN'
 # possible activations are 'relu', 'linear', 'sigmoid', 'tanh'
 
 [[layer]]
-type = 'dense'
+type = 'lowRank'
 dims = [784,512]
 activation = 'relu'
+rank = 30
 
 [[layer]]
 type = 'dense'

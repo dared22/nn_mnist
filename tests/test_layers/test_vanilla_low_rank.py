@@ -4,9 +4,9 @@ from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
 
 def test_instatiation():
     layer = VanillaLowRankLayer(10, 5, 3)
-    assert layer.weight1.shape == (10, 3)
-    assert layer.weight2.shape == (3, 3)
-    assert layer.weight3.shape == (3, 5)
+    assert layer.U.shape == (10, 3)
+    assert layer.S.shape == (3, 3)
+    assert layer.V.shape == (5, 3)
     assert layer.bias.shape == (5,)
 
 
@@ -25,9 +25,9 @@ def test_parameter_initalization():
     std_dev = (2. / input_size)**0.5
     std_dev_tensor = torch.tensor(std_dev)
 
-    assert torch.allclose(layer.weight1.std(), std_dev_tensor, atol=True)
-    assert torch.allclose(layer.weight2.std(), std_dev_tensor, atol=True)
-    assert torch.allclose(layer.weight3.std(), std_dev_tensor, atol=True)
+    assert torch.allclose(layer.U.std(), std_dev_tensor, atol=True)
+    assert torch.allclose(layer.S.std(), std_dev_tensor, atol=True)
+    assert torch.allclose(layer.V.std(), std_dev_tensor, atol=True)
     # Bias initalization check
     assert torch.mean(layer.bias).item() != 0 # just check id it's not all zeros
 
