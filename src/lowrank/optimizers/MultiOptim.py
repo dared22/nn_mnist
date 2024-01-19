@@ -5,6 +5,7 @@ from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
 from lowrank.optimizers.DynamO import DynamicLowRankOptimizer
 from lowrank.optimizers.SGD import SimpleSGD
 from lowrank.layers.dense_layer import DenseLayer
+from lowrank.training.neural_network import FeedForward
 
 class MetaOptimizer():
     def __init__(self, model, optimizer_config = None, alternating_training = True):
@@ -99,39 +100,9 @@ class MetaOptimizer():
 # -------------- Example of usage ----------------
 # Needs to be removed 
 if __name__ == "__main__":
-    class MyNetwork(nn.Module):
-        def __init__(self):
-            super(MyNetwork, self).__init__()
-            # Dynamic low rank layer
-
-            self.dynamic_layer1 = DynamicLowRankLayer(784, 64, 30, activation=nn.ReLU())
-            self.dynamic_layer2 = DynamicLowRankLayer(64, 30, 15, activation=nn.ReLU())
-            # self.dynamic_layer2 = DynamicLowRankLayer(128, 64, 30, activation=nn.ReLU())
-            self.dense1 = DenseLayer(30, 10)
-            # self.dense_layer = DenseLayer(128, 10)
-
-        def forward(self, x):
-            # print("Original shape:", x.shape)
-            # x = nn.Flatten()(x)
-            x = nn.Flatten()(x)
-            
-            # print("After flattening:", x.shape)
-            x = self.dynamic_layer1(x)
-            x = self.dynamic_layer2(x)
-            # x = self.dynamic_layer3(x)
-            x = self.dense1(x)
-
-            x = nn.Softmax(dim=1)(x)
-            return x
+    model = FeedForward.create_from_config("tests/data/config_ex_ffn.toml")
 
     import torch.optim as optim
-    # Initialize the network
-    input_size = 784  # example for flattened 28x28 image
-    output_size = 10   # example for 10 classes
-    rank = 50          # arbitrary rank for the dynamic layer
-    model = MyNetwork()
-    batch_size = 64
-    lambda_lr = 0.00001
 
     loss_function = nn.CrossEntropyLoss() # Adjust according to your task
 
@@ -177,7 +148,7 @@ if __name__ == "__main__":
             # validation accuracy
             # if i % 100 == 0:
             #     print(f"loss: {loss}")
-            if i % 100 == 0:
+            if i % 100 == 0 and i != 0:
                 print(f"loss: {loss}")
                 correct = 0
                 total = 0

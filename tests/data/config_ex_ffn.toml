@@ -9,19 +9,19 @@ architecture = 'FFN'
 
 [[layer]]
 type = 'lowRank'
-dims = [784,512]
+dims = [784,64]
 activation = 'relu'
-rank = 20
+rank = 30
 
 [[layer]]
 type = 'lowRank'
-dims = [512, 256]
+dims = [64, 30]
 activation = 'relu'
-rank = 20
+rank = 15
 
 [[layer]]
 type = 'dense'
-dims=[256,10]
+dims=[30,10]
 activation = 'linear'
 
 

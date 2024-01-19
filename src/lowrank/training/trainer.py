@@ -155,5 +155,3 @@ class Trainer:
             self.early_stopping_counter = 0  # Reset counter if improvement is observed
 
         return False
-    
-
