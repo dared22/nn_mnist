@@ -4,14 +4,18 @@ import torch.nn as nn
 from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
 from lowrank.optimizers.DynamO import DynamicLowRankOptimizer
 from lowrank.optimizers.SGD import SimpleSGD
+from lowrank.layers.dense_layer import DenseLayer
 
 class MetaOptimizer():
-    def __init__(self, model, optimizer_config = None):
+    def __init__(self, model, optimizer_config = None, alternating_training = True):
         self.model = model
         self.layer_optimizers = {}
-        self.s_params = [] # Collect S parameters from DynamicLowRankLayers
         self.default_optimizer_params = []
         self.default_optimizer = None
+        self.alternating_training = alternating_training
+        if alternating_training:
+            self.train_only_S = False
+
         if optimizer_config is None:
             optimizer_config = {
                 "default": (SimpleSGD, {'lr': 3e-4}),
@@ -32,7 +36,6 @@ class MetaOptimizer():
                     # Directly pass the parameters of the DynamicLowRankLayer for safety (optimizer doesn't know which parameters are which due to scope stuff, so if the parameters aren't passed in the right order, the optimizer *might* unpack them incorrectly and subsequently break)
                     layer_params = [layer.U, layer.S, layer.V, layer.bias]
                     self.layer_optimizers[name] = optimizer_class(layer_params, **optimizer_args)
-                    self.s_params.append(layer.S)
                 else:
                     self.layer_optimizers[name] = optimizer_class(layer.parameters(), **optimizer_args)
 
@@ -48,16 +51,45 @@ class MetaOptimizer():
 
     def step(self):
         """Perform an optimization step for each layer."""
+        if self.alternating_training:
+            self.alternating_step()
+        else:
+            self.standard_step()
+            
+
+                
+    def alternating_step(self):
+        if self.train_only_S:
+            for key, optimizer in self.layer_optimizers.items():
+                if isinstance(optimizer, DynamicLowRankOptimizer):
+                    optimizer.defaults["only_S"] = True # Ensure that only S is updated
+                    optimizer.step()
+
+            self.toggle_only_S()
+
+        else: 
+            for key, optimizer in self.layer_optimizers.items():
+                if isinstance(optimizer, DynamicLowRankOptimizer):
+                    optimizer.defaults["only_S"] = False # Ensure that everything is updated
+                optimizer.step()
+        
+            if self.default_optimizer:
+                self.default_optimizer.step()
+            
+            self.toggle_only_S()
+    
+    def standard_step(self):
         for key, optimizer in self.layer_optimizers.items():
-            # print(f"Optimizing layer: {name}")  # Diagnostic print
-            # print(f"Optimizer: {optimizer}")  # Diagnostic print
             optimizer.step()
         
         if self.default_optimizer:
             self.default_optimizer.step()
+        
 
-        # # Take one step using SGD for every parameter S in the layers of type DynamicLowRankLayer
-        # Make one optimizer for parameter S of all layers of type DynamicLowRankLayer
+    def toggle_only_S(self):
+        """Toggle whether only S is updated or not."""
+        self.train_only_S = not self.train_only_S
+        
 
     def zero_grad(self):
         """Clear all gradients in the model."""
@@ -71,27 +103,25 @@ if __name__ == "__main__":
         def __init__(self):
             super(MyNetwork, self).__init__()
             # Dynamic low rank layer
-            self.dynamic_layer1 = DynamicLowRankLayer(1200, 50, 30, activation=nn.ReLU())
-            # self.linearlayer1 = nn.Linear(50, 50)
-            self.dynamic_layer2 = DynamicLowRankLayer(50, 10, 5, activation=nn.ReLU())
-            self.conv1 = nn.Conv2d(1, 3, 3)
-            self.conv2 = nn.Conv2d(3, 3, 3)
-            self.conv3 = nn.Conv2d(3, 3, 3)
-            self.conv4 = nn.Conv2d(3, 3, 3)
+
+            self.dynamic_layer1 = DynamicLowRankLayer(784, 64, 30, activation=nn.ReLU())
+            self.dynamic_layer2 = DynamicLowRankLayer(64, 30, 15, activation=nn.ReLU())
+            # self.dynamic_layer2 = DynamicLowRankLayer(128, 64, 30, activation=nn.ReLU())
+            self.dense1 = DenseLayer(30, 10)
+            # self.dense_layer = DenseLayer(128, 10)
+
         def forward(self, x):
             # print("Original shape:", x.shape)
-            x = self.conv1(x)
-            x = self.conv2(x)
-            x = self.conv3(x)
-            x = self.conv4(x)
+            # x = nn.Flatten()(x)
             x = nn.Flatten()(x)
-
+            
             # print("After flattening:", x.shape)
             x = self.dynamic_layer1(x)
-            # x = self.linearlayer1(x)
-            # x = nn.ReLU()(x)
             x = self.dynamic_layer2(x)
+            # x = self.dynamic_layer3(x)
+            x = self.dense1(x)
 
+            x = nn.Softmax(dim=1)(x)
             return x
 
     import torch.optim as optim
@@ -120,19 +150,21 @@ if __name__ == "__main__":
     # Creating the DataLoader for MNIST
     train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
 
+    test_dataset = datasets.MNIST(root='./data', train=False, transform=transform, download=True)
+
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
+
     # Example usage
     optimizer_config = {
-        "default": (SimpleSGD, {'lr': 3e-4}),
-        DynamicLowRankLayer: (DynamicLowRankOptimizer, {'lr': 3e-4}),
+        "default": (torch.optim.Adam, {'lr': 0.005}),
+        DynamicLowRankLayer: (DynamicLowRankOptimizer, {'lr': 0.1}),
         # Other layer types and their optimizers (if any)
     }
 
 
     meta_optimizer = MetaOptimizer(model, optimizer_config)
-
-    # Training loop
-    for i, batch in enumerate(train_loader):
-        if i < 1000:
+    for epochs in range(10):
+        for i, batch in enumerate(train_loader):
             inputs, labels = batch
             outputs = model(inputs)
             loss = loss_function(outputs, labels)
@@ -141,4 +173,19 @@ if __name__ == "__main__":
             loss.backward()
             # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10)
             meta_optimizer.step()
-            print(f"loss: {loss}")
+            
+            # validation accuracy
+            # if i % 100 == 0:
+            #     print(f"loss: {loss}")
+            if i % 100 == 0:
+                print(f"loss: {loss}")
+                correct = 0
+                total = 0
+                for batch in test_loader:
+                    inputs, labels = batch
+                    outputs = model(inputs)
+                    _, predicted = torch.max(outputs.data, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
+                print(f"Accuracy: {100 * correct / total}")
+

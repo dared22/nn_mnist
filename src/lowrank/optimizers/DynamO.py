@@ -1,20 +1,15 @@
 from torch.optim import Optimizer
 import torch
-import torch.nn as nn
-from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
-from lowrank.optimizers.SGD import SimpleSGD
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms
 
 class DynamicLowRankOptimizer(Optimizer):
-    def __init__(self, params, lr=2e-4):
+    def __init__(self, params, lr=2e-4, toggle_S_training = False):
         if lr <= 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
 
-        defaults = {'lr': lr, "only_S": False}
+        defaults = {'lr': lr, "toggle_S_training": toggle_S_training, "only_S": False}
         super().__init__(params, defaults)
 
-    def step(self, closure=None):
+    def step(self, closure=None, only_S = None):
         """Performs a single optimization step."""
         U, S, V, bias = None, None, None, None  # Initialize variables
         for group in self.param_groups:
@@ -23,17 +18,23 @@ class DynamicLowRankOptimizer(Optimizer):
             V = group['params'][2]
             bias = group['params'][3]
         
+        # If only_S is not specified, use value stored by the internal switching mechanism. This makes it possible for the optimizer to be used standalone or as part of a MetaOptimizer.
+        if only_S is None:
+            only_S = self.defaults["only_S"]
+        
+        # If only_S is specified, overwrite/update the internal switching mechanism
+        else:
+            self.defaults["only_S"] = only_S
 
         # Check if all variables are assigned
         if U is None or S is None or V is None or bias is None:
             raise ValueError("U, S, V, or bias not found in optimizer parameters.")
 
         # Update U, S, V using the existing gradients
-        if self.defaults["only_S"]:
+        if only_S:
             with torch.no_grad():
                 S_new = S - self.defaults["lr"] * S.grad
                 S.data = S_new
-                self.toggle_only_S()
 
         else:
             with torch.no_grad():   
@@ -61,8 +62,9 @@ class DynamicLowRankOptimizer(Optimizer):
 
                 # 4. Update bias using normal SGD
                 bias.data = bias - self.defaults["lr"] * bias.grad
-
-                self.toggle_only_S()
+                
+        if self.defaults["toggle_S_training"]:
+            self.toggle_only_S()
 
     def toggle_only_S(self):
         self.defaults["only_S"] = not self.defaults["only_S"]
