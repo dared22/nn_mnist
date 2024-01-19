@@ -42,6 +42,7 @@ class FeedForward(nn.Module):
         super(FeedForward, self).__init__()
         self.flatten = nn.Flatten()
         self.layers = nn.ModuleList(layers)
+        self.config_parser = None
 
     def forward(self, X):
         """
@@ -86,11 +87,11 @@ class FeedForward(nn.Module):
         """
         # Instantiate your configuration parser
         config_parser = ConfigParser(path)
-        # Use the parser to create FFN configuration
         # Extract layers from the configuration
         # Create an instance of FeedForward with these layers
-        return FeedForward(config_parser.create_multiple_layers())
-    
+        model = FeedForward(config_parser.layers)
+        model.config_parser = config_parser
+        return model
 
     def export_model(self, trained_nn, path):
         """

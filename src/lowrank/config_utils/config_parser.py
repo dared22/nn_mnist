@@ -93,7 +93,8 @@ class ConfigParser:
 
         # Convert string defining activation function to actual activation function
         if 'activation' in layer_config:
-            layer_config['activation'] = self.activation_mapping.get(layer_config['activation'].strip().lower())
+            activation_name = layer_config['activation'].strip().lower()
+            layer_config['activation'] = self.activation_mapping.get(activation_name)
 
         # Convert dims to input_size and output_size
         if 'dims' in layer_config:

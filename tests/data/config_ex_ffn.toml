@@ -1,5 +1,4 @@
 [settings]
-learningRate = 0.001
 batchSize = 64
 numEpochs = 10
 architecture = 'FFN'
@@ -12,14 +11,30 @@ architecture = 'FFN'
 type = 'lowRank'
 dims = [784,512]
 activation = 'relu'
-rank = 30
+rank = 20
 
 [[layer]]
-type = 'dense'
+type = 'lowRank'
 dims = [512, 256]
 activation = 'relu'
+rank = 20
 
 [[layer]]
 type = 'dense'
 dims=[256,10]
 activation = 'linear'
+
+
+# ---------- Optimizer Config --------------
+
+[optimizer.default]
+type = 'SimpleSGD'
+parameters = { lr = 0.005 }
+
+[optimizer.lowRank]
+type = 'DynamicLowRankOptimizer'
+parameters = { lr = 0.1 }
+
+[optimizer.vanillaLowRank]
+type = 'SimpleSGD'
+parameters = { lr = 0.005 }

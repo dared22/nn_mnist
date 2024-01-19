@@ -29,7 +29,7 @@ class Trainer:
         early_stopping: Method checks if the validation loss does not improve beyond a certain threshold (min_delta) for a specified number of epochs (tolerance).
     """
 
-    def __init__(self):
+    def __init__(self, model):
         """
         Initializes the Trainer class with the specified batch size and sets up data loaders for the MNIST dataset.
 
@@ -38,23 +38,15 @@ class Trainer:
         Args:
             batch_size (int): The number of samples per batch to be loaded in the DataLoader.
         """
-        configparser = ConfigParser("tests/data/config_ex_ffn.toml")
-        configparser.load_config()
-        self.batchSize = configparser.batch_size
-        self.numIterations = configparser.num_epochs
-        self.lr = configparser.learning_rate
-        layer1_config = configparser.layers_config[0]
-        self.features = configparser.get_layer_params(layer1_config, ['dims'])['dims'][0] 
-        downloader = Downloader()
-        traindataset, testdataset = downloader.get_data()
-        self.trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
-        self.testloader = DataLoader(testdataset, batch_size=self.batchSize, shuffle=False)
+        self.model = model
+        self.batchSize = self.model.config_parser.batch_size
+        self.numIterations = self.model.config_parser.num_epochs
         self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
         self.early_stopping_counter = 0
         self.accuracy = ()
         
 
-    def train(self, NeuralNet):
+    def train(self, train_dataloader, test_dataloader):
         """
         Trains a neural network model using the MNIST dataset.
 
@@ -77,48 +69,48 @@ class Trainer:
         does not improve, and training is stopped early if there is no improvement in validation accuracy 
         for a given number of epochs specified by 'patience'.
         """
-        optimizer = MetaOptimizer(NeuralNet)
+        optimizer = MetaOptimizer(self.model, self.model.config_parser.optimizer_config)
         criterion = nn.CrossEntropyLoss()
         # scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
         best_accuracy = 0.0
+        features = train_dataloader.dataset[0][0].shape[0]
 
 
         for epoch in range(self.numIterations):
             train_loss = 0.0
-            NeuralNet.train()  # Set the model to training mode
+            self.model.train()  # Set the model to training mode
 
-            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
+            train_loader_progress = tqdm(train_dataloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
 
             for step, (images, labels) in enumerate(train_loader_progress):
                 optimizer.zero_grad()
-                out = NeuralNet(images)
+                out = self.model(images)
                 loss = criterion(out, labels)
                 loss.backward()
                 optimizer.step()
                 train_loss += loss.item()
         
-    
 
                 if (step + 1) % 100 == 0:
-                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
-                    self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
+                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(train_dataloader)}], Loss: {loss.item():.4f}')
+                    self.writer.add_scalar('Training Loss', loss.item(), epoch*len(train_dataloader) + step)
                 
-            train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
+            train_loss /= len(train_dataloader) # Calculate average training loss for the epoch
 
-            NeuralNet.eval()  # Set the model to evaluation mode
+            self.model.eval()  # Set the model to evaluation mode
             validation_loss = 0.0
             correct = 0
             total = 0
             with torch.no_grad():
-                for images, labels in self.testloader:
-                    outputs = NeuralNet(images)
+                for images, labels in test_dataloader:
+                    outputs = self.model(images)
                     loss = criterion(outputs, labels)
                     validation_loss += loss.item()
                     _, predicted = torch.max(outputs.data, 1)
                     total += labels.size(0)
                     correct += (predicted == labels).sum().item()
             # Calculate average validation loss and accuracy
-            validation_loss /= len(self.testloader)
+            validation_loss /= len(test_dataloader)
             accuracy = correct / total
             print(f'Epoch [{epoch+1}/{self.numIterations}], Validation Accuracy: {100 * accuracy:.2f}%, Validation Loss: {validation_loss:.4f}')
             self.writer.add_scalar('Validation Accuracy', accuracy, epoch)
@@ -128,7 +120,7 @@ class Trainer:
             if accuracy > best_accuracy:
                 self.accuracy = (accuracy,(epoch+1))
                 best_accuracy = accuracy
-                torch.save(NeuralNet.state_dict(), f'./data/best_model_at_epoch_{epoch+1}.pt')
+                torch.save(self.model.state_dict(), f'./data/best_model_at_epoch_{epoch+1}.pt')
 
             # Early stopping check
             if self.early_stopping(train_loss, validation_loss, min_delta=0.0001, tolerance=3):
@@ -141,8 +133,8 @@ class Trainer:
 
         self.writer.close()  # Close the TensorBoard writer
         print(f'The best accuracy was achieved at epoch nr.{self.accuracy[1]} with validation accuracy {100*self.accuracy[0]:.2f}%')
-        summary(NeuralNet, input_size=(self.batchSize,self.features))
-        return NeuralNet
+        summary(self.model, input_size=(self.batchSize,features))
+        return self.model
 
     def early_stopping(self, train_loss, validation_loss, min_delta, tolerance):
         """

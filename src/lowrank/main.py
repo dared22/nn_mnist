@@ -3,13 +3,32 @@ from lowrank.training.neural_network import FeedForward
 from lowrank.training.MNIST_downloader import Downloader  # Ensure you have the correct import for Downloader
 from lowrank.predict import predict, show_image
 import torch
+# import downloader
+from torchvision import datasets, transforms
+from torch.utils.data import DataLoader
+
 
 # Create an instance of the FeedForward neural network from configuration
 NeuralNet = FeedForward.create_from_config("tests/data/config_ex_ffn.toml")
 
 
-trainer = Trainer()
-trained_nn = trainer.train(NeuralNet)
+trainer = Trainer(model = NeuralNet)
+
+transform = transforms.Compose([
+	transforms.ToTensor(),
+	transforms.Normalize((0.5,), (0.5,))  # Normalize the MNIST images
+])
+
+# Train data
+train_dataset = datasets.MNIST(root='./data', train=True, transform=transform, download=True)
+train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+
+# test data
+test_dataset = datasets.MNIST(root='./data', train=False, transform=transform, download=True)
+test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
+
+
+trained_nn = trainer.train(train_loader, test_loader)
 #save trained model
 #
 #
