@@ -30,7 +30,7 @@ class Trainer:
         early_stopping: Method checks if the validation loss does not improve beyond a certain threshold (min_delta) for a specified number of epochs (tolerance).
     """
 
-    def __init__(self):
+    def __init__(self, tqdm_file=None):
         """
         Initializes the Trainer class with the specified batch size and sets up data loaders for the MNIST dataset.
 
@@ -53,9 +53,10 @@ class Trainer:
         self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
         self.early_stopping_counter = 0
         self.accuracy = ()
+        self.tqdm_file = tqdm_file
         
 
-    def train(self, NeuralNet):
+    def train(self, NeuralNet, callback=None):
         """
         Trains a neural network model using the MNIST dataset.
 
@@ -84,14 +85,16 @@ class Trainer:
         best_accuracy = 0.0
         start_time = int(datetime.now().strftime('%M%S'))
 
-
+        NeuralNet.train()
         for epoch in range(self.numIterations):
             train_loss = 0.0
-            NeuralNet.train()  # Set the model to training mode
+            total_steps = len(self.trainloader)
+            if callback is None:
+                iterable = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
+            else:
+                iterable = self.trainloader
 
-            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
-
-            for step, (images, labels) in enumerate(train_loader_progress):
+            for step, (images, labels) in enumerate(iterable):
                 optimizer.zero_grad()
                 out = NeuralNet(images)
                 loss = criterion(out, labels)
@@ -101,11 +104,18 @@ class Trainer:
         
     
 
-                if (step + 1) % 100 == 0:
-                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
-                    self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
+                if callback is not None:
+                    # Update GUI progress bar
+                    current_progress = (epoch * total_steps + step) / (self.numIterations * total_steps)
+
+                if (step + 1) % 100 == 0 and callback is None:
+                    # Update tqdm description in console environment
+                    iterable.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+
+ 
                 
             train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
+
 
             NeuralNet.eval()  # Set the model to evaluation mode
             validation_loss = 0.0
@@ -132,16 +142,6 @@ class Trainer:
                 best_accuracy = accuracy
                 torch.save(NeuralNet.state_dict(), f'./data/best_model_at_epoch_{epoch+1}.pt')
 
-            # Early stopping check
-            if self.early_stopping(train_loss, validation_loss, min_delta=0.0001, tolerance=3):
-                finish_time = int(datetime.now().strftime('%M%S'))
-                print("Early stopping triggered at epoch:", epoch + 1)
-                break
-
-
-            # Adjust learning rate based on validation loss
-            #scheduler.step(validation_loss)
-
         self.writer.close()  # Close the TensorBoard writer
         finish_time = int(datetime.now().strftime('%M%S'))
         time_used = finish_time - start_time
@@ -152,24 +152,4 @@ class Trainer:
         summary(NeuralNet, input_size=(self.batchSize,self.features))
         return NeuralNet
 
-    def early_stopping(self, train_loss, validation_loss, min_delta, tolerance):
-        """
-        Checks if early stopping criteria are met.
-        Args:
-            train_loss (float): Training loss of the current epoch.
-            validation_loss (float): Validation loss of the current epoch.
-            min_delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-            tolerance (int): The number of epochs with no improvement after which training will be stopped.
-        Returns:
-            bool: True if early stopping criteria are met, False otherwise.
-        """
-        if (validation_loss - train_loss) > min_delta:
-            self.early_stopping_counter += 1
-            if self.early_stopping_counter >= tolerance:
-                return True
-        else:
-            self.early_stopping_counter = 0  # Reset counter if improvement is observed
-
-        return False
     
-

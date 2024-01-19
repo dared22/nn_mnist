@@ -21,18 +21,30 @@ class TextRedirector(object):
     def write(self, str):
         self.widget.insert(ctk.END, str)
         self.widget.see(ctk.END)
+        self.widget.update_idletasks()
+
+    def flush(self):
+        # Method required for file-like objects
+        self.widget.update_idletasks()
+
+
+# Callback function to update the progress bar
+def update_progress(current_progress):
+    progress_bar['value'] = current_progress * 100
+    app.update_idletasks()
 
 # Function to train the neural network
-def train_nn(path):
-    global nn
+def train_nn(path, progress_callback):
+    print("Training started")
     NeuralNet = FeedForward.create_from_config(path)
-    trainer = Trainer()
-    trained_nn = trainer.train(NeuralNet)
+    trainer = Trainer()  # Remove tqdm_file if not used
+    trained_nn = trainer.train(NeuralNet, progress_callback)
+    global nn
     nn = trained_nn
 
 # Function to start training in a separate thread
 def start_training_thread(path):
-    training_thread = threading.Thread(target=train_nn, args=(path))
+    training_thread = threading.Thread(target=train_nn, args=(path, update_progress))
     training_thread.start()
 
 # Function to browse files
@@ -55,7 +67,9 @@ button_explore.pack(pady=10)
 button_training = ctk.CTkButton(app, text="Train NN", command=lambda: start_training_thread(_selected_filename))
 button_training.pack(pady=10)
 
-# ScrolledText widget for displaying output
+progress_bar = ctk.CTkProgressBar(app, width=300, mode='determinate')
+progress_bar.pack(pady=20)
+
 output_area = st.ScrolledText(app, height=10)
 output_area.pack(expand=True, fill='both', pady=10)
 
