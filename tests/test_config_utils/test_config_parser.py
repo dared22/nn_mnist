@@ -68,9 +68,6 @@ def test_optimizer_config_parsing(temp_toml_file):
     parser.load_config()
     assert 'default' in parser.optimizer_config
     assert DynamicLowRankLayer in parser.optimizer_config
-    print(parser.optimizer_config)
-
-    # assert 'DynamicLowRankOptimizer' in str(parser.optimizer_config[DynamicLowRankLayer])
 
 def test_error_handling_invalid_file():
     with pytest.raises(FileNotFoundError):
