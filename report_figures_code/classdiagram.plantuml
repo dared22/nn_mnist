@@ -1,0 +1,51 @@
+@startuml wholesystem
+
+class "Config File (TOML)" as ConfigFile {
+    - path: String
+}
+
+class "Config Parser" as ConfigParser {
+    - batch_size: int
+    - num_epochs: int
+    - architecture: String
+    - layers: List
+    - optimizer_config: Dictionary
+    + load_config(): void
+    + create_layer(layer_config): Layer
+    + create_multiple_layers(): List
+    + parse_optimizer_config(config): void
+}
+
+class "Neural Network" as NeuralNetwork {
+    - layers: List
+    + create_from_config(configPath: String): NeuralNetwork
+}
+
+class "Trainer" as Trainer {
+    - neural_network: NeuralNetwork
+    - training_program: Object
+    + train(): void
+    + apply_early_stopping(): void
+    + tensorboard_visualization(): void
+}
+
+class "MetaOptimizer" as MetaOptimizer {
+    - model: NeuralNetwork
+    - optimizer_config: Dictionary
+    + step(): void
+    + zero_grad(): void
+}
+
+class "DynamicLowRankLayer" as DynamicLowRankLayer {
+}
+
+' Relationships
+ConfigFile --> ConfigParser : "is read by"
+ConfigParser --> NeuralNetwork : "creates\ninstance"
+ConfigParser ..> DynamicLowRankLayer : "may contain"
+NeuralNetwork ..> DynamicLowRankLayer : "may contain"
+NeuralNetwork --> Trainer : "is used by"
+ConfigParser --> MetaOptimizer : "configures"
+MetaOptimizer --> DynamicLowRankLayer : "optimizes"
+
+@enduml

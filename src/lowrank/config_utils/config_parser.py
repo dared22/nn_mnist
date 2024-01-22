@@ -50,9 +50,9 @@ class ConfigParser:
 
         # Map from optimizer names (strings) to optimizer classes
         self.optimizer_class_mapping = {
-            'SimpleSGD': SimpleSGD,
-            'DynamicLowRankOptimizer': DynamicLowRankOptimizer,
-            'Adam': torch.optim.Adam,
+            'simplesgd': SimpleSGD,
+            'dynamiclowrankoptimizer': DynamicLowRankOptimizer,
+            'adam': torch.optim.Adam,
             # Add other mappings as needed
         }
 
@@ -68,22 +68,32 @@ class ConfigParser:
 
 
     def load_config(self):
-        """
-        Load and parse the configuration from the TOML file. If value is not found, use default value.
-        """
-        try:
-            with open(self.path, 'r') as file:
-                config = toml.load(file)
+            """
+            Load and parse the configuration from the TOML file. If a value is not found, a default value is used.
+            Proper error handling is implemented to manage potential file reading and parsing issues.
+            """
+            try:
+                with open(self.path, 'r') as file:
+                    config = toml.load(file)
+            except FileNotFoundError as e:
+                raise FileNotFoundError(f"Could not find configuration file at {self.path}.") from e
+            except toml.TomlDecodeError as e:
+                raise ValueError(f"Error parsing TOML file at {self.path}. Please ensure it is formatted correctly.") from e
+
+            try:
                 self.batch_size = config['settings'].get('batchSize', 64)
                 self.num_epochs = config['settings'].get('numEpochs', 10)
                 self.architecture = config['settings'].get('architecture', 'ffn').lower().strip()
                 self.layers_config = config.get('layer', [])
-                self.create_multiple_layers()
-                self.parse_optimizer_config(config.get('optimizer', {}))
-                
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Could not find configuration file at {self.path}.") from e
-        
+                optimizer_config = config.get('optimizer', {})
+            except KeyError as e:
+                raise KeyError(f"Required configuration key missing: {e}. Please check the configuration file.")  
+            
+            self.create_multiple_layers()
+            self.parse_optimizer_config(optimizer_config)
+
+
+
     def create_layer(self, layer_config):
         """
         Create a layer based on the layer configuration.
@@ -130,7 +140,7 @@ class ConfigParser:
     def parse_optimizer_config(self, optimizer_config_raw):
         self.optimizer_config = {}
         for layer_type, opt_config in optimizer_config_raw.items():
-            optimizer_class = self.optimizer_class_mapping.get(opt_config['type'])
+            optimizer_class = self.optimizer_class_mapping.get(opt_config['type'].strip().lower())
             layer_class = self.layer_class_mapping.get(layer_type.strip().lower())
             if optimizer_class:
                 # Map string keys to (optimizer_class, parameters) tuples

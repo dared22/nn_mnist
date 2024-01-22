@@ -35,11 +35,8 @@ class Trainer:
 
         The function also initializes a TensorBoard SummaryWriter to log training and validation metrics.
 
-        Args:
-            batch_size (int): The number of samples per batch to be loaded in the DataLoader.
-        """
+        Args:        """
         self.model = model
-        self.batchSize = self.model.config_parser.batch_size
         self.numIterations = self.model.config_parser.num_epochs
         self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
         self.early_stopping_counter = 0
@@ -133,7 +130,6 @@ class Trainer:
 
         self.writer.close()  # Close the TensorBoard writer
         print(f'The best accuracy was achieved at epoch nr.{self.accuracy[1]} with validation accuracy {100*self.accuracy[0]:.2f}%')
-        summary(self.model, input_size=(self.batchSize,features))
         return self.model
 
     def early_stopping(self, train_loss, validation_loss, min_delta, tolerance):
