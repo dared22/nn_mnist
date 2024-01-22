@@ -13,6 +13,8 @@ from PIL import Image, ImageDraw, ImageOps
 import io
 import numpy as np
 import matplotlib.pyplot as plt
+import os
+import glob
 
 
 class GUI:
@@ -63,11 +65,29 @@ class GUI:
         self.load_model_btn = ctk.CTkButton(self.app, text='Load Trained Model', command=self.load_model)
         self.load_model_btn.grid(row=3, column=0, pady=10, padx=10, sticky="ew")
 
+        self.feature_btn = ctk.CTkButton(self.app, text='Leo`s Feature', command=self.feature)
+        self.feature_btn.grid(row=3, column=1, pady=10, padx=10, sticky="ew")
+
         self.output_area = st.ScrolledText(self.app, height=10)
         self.output_area.grid(row=5, column=0, columnspan=2, padx=10, sticky="ew")
 
         # Redirect stdout to the output area
         sys.stdout = self.TextRedirector(self.output_area)
+
+    def feature(self):
+        def choose_folder():
+            filename = filedialog.askdirectory(initialdir="/", title="Select a Folder")
+            return filename
+        def list_toml_files(directory):
+            # Construct the search pattern
+            pattern = os.path.join(directory, '*.toml')
+            # List all files ending with .toml
+            toml_files = glob.glob(pattern)
+            return toml_files
+        paths = list_toml_files(choose_folder())
+        for path in paths:
+            self.train_nn(path)
+        
 
 
 
