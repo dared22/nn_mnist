@@ -29,7 +29,7 @@ class GUI:
         # Create and place widgets
         self.create_widgets()
         # Create NeuralNet
-        self._NeuralNet = FeedForward.create_from_config(self.browse_files("Select a configfile"))
+        self._NeuralNet = FeedForward.create_from_config(self.browse_files("Select a configfile", (('toml files', '*.toml'), ('All files', '*.*'))))
 
     class TextRedirector(object):
         def __init__(self, widget):
@@ -101,8 +101,8 @@ class GUI:
         training_thread.start()
 
     # Function to browse files
-    def browse_files(self, title):
-        filename = filedialog.askopenfilename(initialdir="/", title=title)
+    def browse_files(self, title, type):
+        filename = filedialog.askopenfilename(initialdir="/", title=title, filetypes=type)
         self.label_file_explorer.configure(text="File Opened: " + filename)
         self._selected_filename = filename
         return filename
@@ -132,7 +132,7 @@ class GUI:
 
     def load_model(self):
         trained_model = self._NeuralNet
-        self._NeuralNet.import_model(trained_model, self.browse_files("Select a model to load")) # Loading the trained weights into the model
+        self._NeuralNet.import_model(trained_model, self.browse_files("Select a model to load", (('PyTorch files', '*.pt'),('All files', '*.*')))) # Loading the trained weights into the model
         trained_model.eval()
         self._NeuralNet = trained_model
         
