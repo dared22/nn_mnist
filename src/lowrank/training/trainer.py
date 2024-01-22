@@ -85,16 +85,14 @@ class Trainer:
         best_accuracy = 0.0
         start_time = int(datetime.now().strftime('%M%S'))
 
-        NeuralNet.train()
+
         for epoch in range(self.numIterations):
             train_loss = 0.0
-            total_steps = len(self.trainloader)
-            if callback is None:
-                iterable = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
-            else:
-                iterable = self.trainloader
+            NeuralNet.train()  # Set the model to training mode
 
-            for step, (images, labels) in enumerate(iterable):
+            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
+
+            for step, (images, labels) in enumerate(train_loader_progress):
                 optimizer.zero_grad()
                 out = NeuralNet(images)
                 loss = criterion(out, labels)
@@ -104,15 +102,9 @@ class Trainer:
         
     
 
-                if callback is not None:
-                    # Update GUI progress bar
-                    current_progress = (epoch * total_steps + step) / (self.numIterations * total_steps)
-
-                if (step + 1) % 100 == 0 and callback is None:
-                    # Update tqdm description in console environment
-                    iterable.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
-
- 
+                if (step + 1) % 100 == 0:
+                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
+                    self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
                 
             train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
 
