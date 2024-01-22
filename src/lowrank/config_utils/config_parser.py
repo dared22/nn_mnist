@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from typing import List
 from pathlib import Path
+import argparse
 
 # ----- Layers -----
 from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
@@ -154,6 +155,18 @@ class ConfigParser:
 
     def add_activation_mapping(self, activation_type, activation_class):
         self.activation_mapping[activation_type] = activation_class
+
+
+def parse_input():
+    parser = argparse.ArgumentParser(description='This script configurates a neural network based on a TOML file.')
+    parser.add_argument('-c', '--config', default='default_config.toml', help='Path to the TOML configuration file. Default is "default_config.toml"')
+    parser.add_argument('--flag', action='store_true', help='Set this flag for additional options.')
+
+    arguments = parser.parse_args()
+    config_path = arguments.config
+    flag = arguments.flag
+
+    return config_path, flag
 
 if __name__ == "__main__":
     config = ConfigParser('/Users/leoquentin/Documents/Programmering/project-inf202/src/lowrank/config_utils/config_ex_ffn_low_rank.toml')
