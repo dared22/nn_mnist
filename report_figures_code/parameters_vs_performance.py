@@ -97,4 +97,4 @@ def train_model(config_path):
 # ------------------ Training ------------------
 config_path = "report_figures_code/config_files/config_rank_49.toml"
 val_accuracy = train_model(config_path)
-print(f"Rank: {rank}, Validation Accuracy: {}")
+print(f"Rank: {rank}, Validation Accuracy:")
