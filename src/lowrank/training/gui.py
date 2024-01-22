@@ -75,6 +75,7 @@ class GUI:
         sys.stdout = self.TextRedirector(self.output_area)
 
     def feature(self):
+        nns = []
         def choose_folder():
             filename = filedialog.askdirectory(initialdir="/", title="Select a Folder")
             return filename
@@ -86,7 +87,8 @@ class GUI:
             return toml_files
         paths = list_toml_files(choose_folder())
         for path in paths:
-            self.train_nn(path)
+            nns.append(self.train_nn(path))
+
         
 
 
@@ -98,6 +100,7 @@ class GUI:
         trainer = Trainer() 
         trained_nn = trainer.train(NeuralNet)
         self._nn = trained_nn
+        return trained_nn
 
     # Function to start training in a separate thread
     def start_training_thread(self):
