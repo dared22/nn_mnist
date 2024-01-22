@@ -5,6 +5,8 @@ from typing import List
 from pathlib import Path
 from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
 from lowrank.layers.dense_layer import DenseLayer
+import argparse
+
 
 class ConfigParser:
     def __init__(self, path):
@@ -122,7 +124,21 @@ class ConfigParser:
         except KeyError:
             print(f"Unknown activation function: {activation_name}")
 
+def parse_input():
+    parser = argparse.ArgumentParser(description='This script configurates a neural network based on a TOML file.')
+    parser.add_argument('-c', '--config', default='default_config.toml', help='Path to the TOML configuration file. Default is "default_config.toml"')
+    parser.add_argument('--flag', action='store_true', help='Set this flag for additional options.')
+
+    arguments = parser.parse_args()
+    config_path = arguments.config
+    flag = arguments.flag
+
+    return config_path, flag
+
 if __name__ == "__main__":
-    config = ConfigParser('/Users/leoquentin/Documents/Programmering/project-inf202/src/lowrank/config_utils/config_ex_ffn_low_rank.toml')
-    model = config.create_model()
-    print(model)
+    config_path, flag = parse_input()
+    config_parser = ConfigParser(config_path)
+
+    # config = ConfigParser('/Users/leoquentin/Documents/Programmering/project-inf202/src/lowrank/config_utils/config_ex_ffn_low_rank.toml')
+    # model = config.create_model()
+    # print(model)
