@@ -24,16 +24,14 @@ class VanillaLowRankLayer(nn.Module):
     ----------
     weight1 : torch.nn.Parameter
         The first weight matrix of the layer with dimensions (input_size, rank).
-        Initialized using He initialization.
     weight2 : torch.nn.Parameter
         The second weight matrix of the layer, a square matrix with dimensions (rank, rank).
-        Initialized using He initialization.
     weight3 : torch.nn.Parameter
         The third weight matrix with dimensions (rank, output_size). 
-        Initialized using He initialization.
     bias : torch.nn.Parameter
         The bias parameter of the layer, with the same number of elements as the output_size.
-        Initialized with random values from a standard normal distribution.
+    activation : callable (optional)
+        The activation function to apply after the linear transformation
     """
 
     def __init__(self, input_size, output_size, rank, activation=None):
@@ -56,6 +54,19 @@ class VanillaLowRankLayer(nn.Module):
         self.activation = activation
 
     def forward(self, x):
+        """
+        Computes the output of the VanillaLowRankLayer.
+
+        Parameters
+        ----------
+        x : torch.Tensor
+            The input tensor.
+
+        Returns
+        -------
+        torch.Tensor
+            The output of the layer.
+        """
         x = torch.matmul(x, self.U)
         x = torch.matmul(x, self.S)
         x = torch.matmul(x, self.V.t())

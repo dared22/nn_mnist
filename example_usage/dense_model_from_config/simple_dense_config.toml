@@ -6,9 +6,10 @@ architecture = 'FFN'
 # -------------- Layers --------------
 
 [[layer]]
-type = 'dense'
+type = 'vanillalowrank'
 dims = [784,64]
 activation = 'relu'
+rank = 20
 
 [[layer]]
 type = 'dense'

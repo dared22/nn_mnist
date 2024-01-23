@@ -40,7 +40,6 @@ class FeedForward(nn.Module):
             A list of neural network layers to be applied in sequence.
         """
         super(FeedForward, self).__init__()
-        self.flatten = nn.Flatten()
         self.layers = nn.ModuleList(layers)
         self.config_parser = None
 
@@ -62,7 +61,6 @@ class FeedForward(nn.Module):
         """
 
         for layer in self.layers:
-            X = self.flatten(X)
             X = layer(X)
         return X
 

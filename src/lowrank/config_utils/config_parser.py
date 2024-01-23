@@ -60,10 +60,11 @@ class ConfigParser:
 
         # Map from layer names (strings) to layer classes
         self.layer_class_mapping = {
-            'default': 'default',
+            'default': 'default', # this is here so the optimization assigning haas a default value in case a layer isn't specificed
             'vanillalowrank': VanillaLowRankLayer,
-            "lowrank": DynamicLowRankLayer,
+            'lowrank': DynamicLowRankLayer,
             'dense': DenseLayer,
+            'flatten': nn.Flatten,
             # Add other mappings as needed
         }
 
@@ -135,8 +136,6 @@ class ConfigParser:
             return layer_class(**layer_config)
         except TypeError as e:
             raise TypeError(f"Error creating layer {layer_type}: {e}") from e
-            print(f"Error creating layer {layer_type}: {e}")
-            return None
 
     def create_multiple_layers(self):
         """
