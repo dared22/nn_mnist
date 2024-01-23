@@ -18,7 +18,26 @@ from lowrank.config_utils.config_parser import ConfigParser
 
 
 class GUI:
+    """
+    A class representing the Graphical User Interface for a neural network training and prediction application.
+
+    Attributes:
+        app: The main application window for the GUI.
+        _selected_filename (str): The path of the selected file.
+        batchSize (int): Batch size for training, read from config.
+        testdataset (Dataset): The test dataset used for prediction.
+        _trainloader (DataLoader): DataLoader for training data.
+        _testloader (DataLoader): DataLoader for test data.
+        _NeuralNet (nn.Module): The neural network model.
+    """
+
     def __init__(self, app):
+        """
+        Initializes the GUI with necessary widgets and configurations.
+
+        Args:
+            app: The root or main window of the application where widgets are placed.
+        """
         self.app = app
         self.app.title("Enhanced GUI with CustomTkinter")
 
@@ -30,7 +49,13 @@ class GUI:
         self.create_widgets()
         # Initialize variables
         self._selected_filename = None
-        config_file_path = self.browse_files("Select a config file", (('Config Files', '*.toml'),('All files', '*.*')))
+        config_file_path = os.path.join(os.getcwd(), 'config.toml')
+
+        # Check if the file exists as it 
+        if os.path.isfile(config_file_path):
+            pass
+        else:
+            config_file_path = self.browse_files("Select a config file", (('Config Files', '*.toml'),('All files', '*.*')))
         configparser = ConfigParser(config_file_path)
         configparser.load_config()
         self.batchSize = configparser.batch_size
@@ -42,10 +67,15 @@ class GUI:
 
         # Create NeuralNet
         self._NeuralNet = FeedForward.create_from_config(config_file_path)
-        self.nns = [] #delete later
 
 
     class TextRedirector(object):
+        """
+        A class to redirect the standard output to a tkinter widget.
+
+        Attributes:
+            widget: The tkinter widget where the output will be redirected.
+        """
         def __init__(self, widget):
             self.widget = widget
 
@@ -54,11 +84,13 @@ class GUI:
             self.widget.see(ctk.END)
             self.widget.update_idletasks()
 
-        def flush(self): #AttributeError: 'TextRedirector' object has no attribute 'flush'
+        def flush(self): 
             pass
 
     def create_widgets(self):
-        # Create and place all the widgets
+        """
+        Creates and places widgets in the main application window.
+        """
         self.label_file_explorer = ctk.CTkLabel(self.app, text="File Explorer", width=100, height=40, fg_color="gray", text_color="white")
         self.label_file_explorer.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky="ew")
 
@@ -87,6 +119,10 @@ class GUI:
         sys.stdout = self.TextRedirector(self.output_area)
 
     def train_all(self):
+        """
+        Trains neural networks using configurations from all TOML files in a selected folder.
+        """
+        nns = []
         def choose_folder():
             filename = filedialog.askdirectory(initialdir="/", title="Select a Folder")
             return filename
@@ -97,34 +133,60 @@ class GUI:
             toml_files = glob.glob(pattern)
             return toml_files
         paths = list_toml_files(choose_folder())
-        print(paths)
         for  path in paths:
             nn = FeedForward.create_from_config(path)
-            print(path)
-            self.start_training_thread(nn)
+            trained_nn, training_log = self.train_nn(nn)
+            nns.append((training_log,path[-11:-4])) #cut out rest of the path for visibility
+        print(nns)
+            
 
-    # Function to train the neural network
+
     def train_nn(self, nn):
+        """
+        Trains a given neural network model and returns the trained model and training log.
+
+        Args:
+            nn (nn.Module): The neural network model to train.
+
+        Returns:
+            A tuple of the trained neural network model and the training log.
+        """
         trainer = Trainer.create_from_model(nn) 
         trained_nn, training_log = trainer.train(self._trainloader, self._testloader)
-        self.nns.append(training_log) 
         self._NeuralNet = trained_nn
         return trained_nn, training_log
 
-    # Function to start training in a separate thread
     def start_training_thread(self, nn):
+        """
+        Starts the training process in a separate thread.
+
+        Args:
+            nn : The neural network model to train.
+        """
         training_thread = threading.Thread(target=self.train_nn, args=(nn,))
         training_thread.start()
 
-    # Function to browse files
+
     def browse_files(self, title, type):
+        """
+        Opens a file dialog to browse and select files.
+
+        Args:
+            title (str): The title of the file dialog.
+            type (tuple): The filetype filter.
+
+        Returns:
+            str: The path of the selected file.
+        """
         filename = filedialog.askopenfilename(initialdir="/", title=title, filetypes=type)
         self.label_file_explorer.configure(text="File Opened: " + filename)
         self._selected_filename = filename
         return filename
 
     def predict_btn(self):
-        # Function to handle the prediction logic
+        """
+        Handles the prediction process using a GUI pop-up for input.
+        """
         def handle_predict():
             input_value = int(input_entry.get())  # Get the input value
             # You can add your prediction logic here using the input_value
@@ -147,12 +209,18 @@ class GUI:
         predict_button.pack(pady=10)
 
     def load_model(self):
+        """
+        Loads a trained neural network model from a selected file.
+        """
         trained_model = self._NeuralNet
         self._NeuralNet.import_model(trained_model, self.browse_files("Select a model to load", (('PyTorch files', '*.pt'),('All files', '*.*')))) # Loading the trained weights into the model
         trained_model.eval()
         self._NeuralNet = trained_model
         
     def save_model(self):
+        """
+        Saves the currently loaded neural network model to a selected directory.
+        """
         def choose_folder():
             filename = filedialog.askdirectory(initialdir="/", title="Select a Folder")
             return filename
@@ -160,6 +228,9 @@ class GUI:
 
 
     def open_drawing_window(self):
+        """
+        Opens a pop-up window with a canvas for drawing digits to be predicted.
+        """
         def start_paint(event):
             """Set the starting point for the line."""
             global last_x, last_y
@@ -202,26 +273,50 @@ class GUI:
 
 
         def get_image_from_canvas(canvas, width, height):
-            # Create a PIL image from the canvas content
+            """
+            Extracts an image from a canvas, resizes it, and returns the image.
+
+            Args:
+                canvas: The canvas from which to capture the image.
+                width (int): The width to resize the image to.
+                height (int): The height to resize the image to.
+
+            Returns:
+                Image: The extracted and resized image.
+            """
             ps = canvas.postscript(colormode='color')
-            img = Image.open(io.BytesIO(ps.encode('utf-8')))
+            img = Image.open(io.BytesIO(ps.encode('utf-8'))) # Create a PIL image from the canvas content
             img = img.resize((width, height))
             return img
 
         def process_image(img):
-            # Convert to grayscale
-            img = img.convert('L')
-            img = ImageOps.invert(img)
-            # Convert PIL image to NumPy array
+            """
+            Processes the image by converting it to grayscale and normalizing.
+
+            Args:
+                img (Image): The image to be processed.
+
+            Returns:
+                ndarray: The processed image array.
+            """
+            img = img.convert('L')# Convert to grayscale
+            img = ImageOps.invert(img) # Convert PIL image to NumPy array
             img_array = np.array(img)
-            # Normalize the image array to [0, 1]
-            img_array = img_array / 255.0
+            img_array = img_array / 255.0  # Normalize the image array 
             return img_array
 
         def image_to_tensor(img):
-            # Convert PIL image to PyTorch tensor
+            """
+            Converts an image to a PyTorch tensor.
+
+            Args:
+                img: The image to be converted.
+
+            Returns:
+                Tensor: The image converted to a PyTorch tensor.
+            """
             tensor = torch.tensor(img, dtype=torch.float32)
-            tensor = tensor.unsqueeze(0)  # Add batch dimension, if necessary
+            tensor = tensor.unsqueeze(0) 
             return tensor
         
     sys.stdout = sys.__stdout__ #get output back to console
