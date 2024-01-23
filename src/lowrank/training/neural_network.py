@@ -93,16 +93,17 @@ class FeedForward(nn.Module):
         model.config_parser = config_parser
         return model
 
-    def export_model(self, trained_nn, path):
+    def export_model(self, path):
         """
         Exports a trained neural network model's state dictionary to the specified path.
 
         Args:
             trained_nn (torch.nn.Module): The trained neural network model whose state dictionary is to be saved.
         """
-        torch.save(trained_nn.state_dict(), path)
+        torch.save(self.state_dict(), path)
 
-    def import_model(self,nn,path): #not working for some reason!!!
+    @staticmethod
+    def import_model(path): #not working for some reason!!! might be fixed?
         """
         Imports a neural network model's state dictionary from the specified path.
 

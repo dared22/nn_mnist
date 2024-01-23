@@ -96,5 +96,8 @@ def train_model(config_path):
 
 # ------------------ Training ------------------
 config_path = "report_figures_code/config_files/config_rank_49.toml"
-val_accuracy = train_model(config_path)
+model, train_log = train_model(config_path)
+# find best test accuracy and epoch number
+best_accuracy = max(train_log, key=lambda x: x['val_accuracy'])
+print(best_accuracy)
 print(f"Rank: {rank}, Validation Accuracy:")

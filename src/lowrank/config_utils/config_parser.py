@@ -117,8 +117,7 @@ class ConfigParser:
         try:
             return layer_class(**layer_config)
         except TypeError as e:
-            print(f"Error creating layer {layer_type}: {e}")
-            return None
+            raise TypeError(f"Error creating layer {layer_type}: {e}") from e
 
     def create_multiple_layers(self):
         """
@@ -167,7 +166,3 @@ def parse_input():
     flag = arguments.flag
 
     return config_path, flag
-
-if __name__ == "__main__":
-    config = ConfigParser('/Users/leoquentin/Documents/Programmering/project-inf202/src/lowrank/config_utils/config_ex_ffn_low_rank.toml')
-    print(config.optimizer_config)
