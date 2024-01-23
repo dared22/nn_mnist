@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from lowrank.training.neural_network import FeedForward
+import os
 
 def test_neural_network_instantation():
     # Test instantation with a simple configuration
