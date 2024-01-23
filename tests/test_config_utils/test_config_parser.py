@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
 from lowrank.layers.dense_layer import DenseLayer
-from lowrank.optimizers.DynamO import DynamicLowRankOptimizer
+from lowrank.optimizers.dynamic_low_rank_optimizer import DynamicLowRankOptimizer
 
 
 # Fixture for creating a temporary TOML file

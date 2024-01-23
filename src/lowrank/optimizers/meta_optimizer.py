@@ -2,13 +2,52 @@ from torch.optim import Optimizer
 import torch
 import torch.nn as nn
 from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
-from lowrank.optimizers.DynamO import DynamicLowRankOptimizer
-from lowrank.optimizers.SGD import SimpleSGD
-from lowrank.layers.dense_layer import DenseLayer
-from lowrank.training.neural_network import FeedForward
+from lowrank.optimizers.dynamic_low_rank_optimizer import DynamicLowRankOptimizer
+from lowrank.optimizers.simple_sgd import SimpleSGD
 
 class MetaOptimizer():
+    """
+    A meta-optimizer for handling different optimization strategies for various layers of a neural network model.
+
+    This optimizer allows for different optimization algorithms and parameters to be used for different types of layers.
+    It supports both standard and alternating training modes.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The neural network model to be optimized.
+    optimizer_config : dict, optional
+        A dictionary mapping layer types to their corresponding optimizer classes and arguments.
+        Defaults to using SimpleSGD for all layers if not provided.
+    alternating_training : bool, optional
+        Indicates whether to use alternating training, where only certain parameters are updated in each step.
+        Defaults to True.
+
+    Attributes
+    ----------
+    model : torch.nn.Module
+        The neural network model being optimized.
+    layer_optimizers : dict
+        A dictionary mapping layer names to their corresponding optimizer instances.
+    default_optimizer_params : list
+        List of parameters for layers that are not explicitly specified in the optimizer configuration.
+    default_optimizer : Optimizer
+        The default optimizer used for layers not specified in the optimizer configuration.
+    alternating_training : bool
+        Whether the optimizer is in alternating training mode.
+    train_only_S : bool
+        In alternating mode, indicates if only the 'S' parameters should be updated in the current step.
+    """
     def __init__(self, model, optimizer_config = None, alternating_training = True):
+        """
+        Initializes the MetaOptimizer with the specified model, optimizer configuration, and training mode.
+
+        This method sets up individual optimizers for each layer in the model according to the provided
+        optimizer configuration. It also prepares for alternating training if specified.
+
+        Note: The optimizer configuration should be a dictionary mapping layer types to optimizer classes
+        and their arguments.
+        """
         self.model = model
         self.layer_optimizers = {}
         self.default_optimizer_params = []
@@ -51,15 +90,25 @@ class MetaOptimizer():
 
 
     def step(self):
-        """Perform an optimization step for each layer."""
+        """
+        Perform an optimization step for each layer in the model.
+
+        This method updates the parameters of each layer using its respective optimizer.
+        In alternating training mode, it alternates between updating only certain parameters
+        and updating all parameters.
+        """
         if self.alternating_training:
             self.alternating_step()
         else:
             self.standard_step()
-            
-
                 
     def alternating_step(self):
+        """
+        Perform an optimization step in alternating training mode.
+
+        This method updates either only the 'S' parameters or all parameters for each layer,
+        depending on the current state of alternating training.
+        """
         if self.train_only_S:
             for key, optimizer in self.layer_optimizers.items():
                 if isinstance(optimizer, DynamicLowRankOptimizer):
@@ -80,6 +129,9 @@ class MetaOptimizer():
             self.toggle_only_S()
     
     def standard_step(self):
+        """
+        Update all parameters in the model.
+        """
         for key, optimizer in self.layer_optimizers.items():
             optimizer.step()
         
@@ -88,75 +140,14 @@ class MetaOptimizer():
         
 
     def toggle_only_S(self):
-        """Toggle whether only S is updated or not."""
+        """
+        Toggle the state of training only 'S' parameters in alternating training mode.
+        """
         self.train_only_S = not self.train_only_S
         
 
     def zero_grad(self):
-        """Clear all gradients in the model."""
+        """
+        Clear all gradients in the model.
+        """
         self.model.zero_grad()
-
-   
-# -------------- Example of usage ----------------
-# Needs to be removed 
-if __name__ == "__main__":
-    model = FeedForward.create_from_config("tests/data/config_ex_ffn.toml")
-
-    import torch.optim as optim
-
-    loss_function = nn.CrossEntropyLoss() # Adjust according to your task
-
-    from torchvision import datasets, transforms
-    from torch.utils.data import DataLoader
-
-    # Transformations applied on each image => here just converting them to tensor and normalizing
-    transform = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.5,), (0.5,))  # Normalize the MNIST images
-    ])
-
-    # Downloading and loading MNIST dataset
-    train_dataset = datasets.MNIST(root='./data', train=True, transform=transform, download=True)
-
-    # Creating the DataLoader for MNIST
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-
-    test_dataset = datasets.MNIST(root='./data', train=False, transform=transform, download=True)
-
-    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=True)
-
-    # Example usage
-    optimizer_config = {
-        "default": (torch.optim.Adam, {'lr': 0.005}),
-        DynamicLowRankLayer: (DynamicLowRankOptimizer, {'lr': 0.1}),
-        # Other layer types and their optimizers (if any)
-    }
-
-
-    meta_optimizer = MetaOptimizer(model, optimizer_config)
-    for epochs in range(10):
-        for i, batch in enumerate(train_loader):
-            inputs, labels = batch
-            outputs = model(inputs)
-            loss = loss_function(outputs, labels)
-
-            meta_optimizer.zero_grad()
-            loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10)
-            meta_optimizer.step()
-            
-            # validation accuracy
-            # if i % 100 == 0:
-            #     print(f"loss: {loss}")
-            if i % 100 == 0 and i != 0:
-                print(f"loss: {loss}")
-                correct = 0
-                total = 0
-                for batch in test_loader:
-                    inputs, labels = batch
-                    outputs = model(inputs)
-                    _, predicted = torch.max(outputs.data, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-                print(f"Accuracy: {100 * correct / total}")
-

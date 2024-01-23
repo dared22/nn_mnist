@@ -2,6 +2,28 @@ from torch.optim import Optimizer
 import torch
 
 class DynamicLowRankOptimizer(Optimizer):
+    """
+    A specialized optimizer for training DynamicLowRankLayer in neural networks.
+
+    This optimizer is designed to update the parameters of a DynamicLowRankLayer,
+    which includes matrices U, S, V, and a bias term. It supports the option to
+    toggle training between updating all parameters and updating only the S matrix.
+
+    Parameters
+    ----------
+    params : iterable
+        An iterable of parameters to optimize or dicts defining parameter groups.
+    lr : float, optional
+        The learning rate to use for optimization. Default: 2e-4.
+    toggle_S_training : bool, optional
+        If True, toggles the training to focus only on the S matrix in alternating steps.
+        Default: False.
+
+    Raises
+    ------
+    ValueError
+        If an invalid learning rate is provided.
+    """
     def __init__(self, params, lr=2e-4, toggle_S_training = False):
         if lr <= 0.0:
             raise ValueError(f"Invalid learning rate: {lr}")
@@ -9,8 +31,32 @@ class DynamicLowRankOptimizer(Optimizer):
         defaults = {'lr': lr, "toggle_S_training": toggle_S_training, "only_S": False}
         super().__init__(params, defaults)
 
-    def step(self, closure=None, only_S = None):
-        """Performs a single optimization step."""
+    def step(self, only_S = None):
+        """
+        Performs a single optimization step.
+
+        This method updates the U, S, V matrices, and the bias term of the
+        DynamicLowRankLayer, with an option to update only the S matrix.
+
+        Parameters
+        ----------
+        only_S : bool, optional
+            If specified, overrides the internal 'only_S' setting for this step,
+            determining whether only the S matrix should be updated. If None, uses
+            the internal setting. Default: None.
+
+        Raises
+        ------
+        ValueError
+            If any of the parameters (U, S, V, bias) are not found in the optimizer parameters.
+
+        Notes
+        -----
+        - The update rules for U, S, V, and bias are specific to the structure of
+          the DynamicLowRankLayer.
+        - If 'toggle_S_training' is True, the optimizer alternates between updating
+          only S and updating all parameters in subsequent steps.
+        """
         U, S, V, bias = None, None, None, None  # Initialize variables
         for group in self.param_groups:
             U = group['params'][0]
@@ -67,4 +113,10 @@ class DynamicLowRankOptimizer(Optimizer):
             self.toggle_only_S()
 
     def toggle_only_S(self):
+        """
+        Toggles the internal 'only_S' setting.
+
+        When toggled, the optimizer will switch between updating only the S matrix
+        and updating all parameters in subsequent steps.
+        """
         self.defaults["only_S"] = not self.defaults["only_S"]

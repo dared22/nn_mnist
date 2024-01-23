@@ -1,5 +1,0 @@
-# Import all optimizers to make them directly accessible from lowrank.optimizers
-
-from .DynamO import DynamicLowRankOptimizer
-from .MultiOptim import MetaOptimizer
-from .SGD import SimpleSGD

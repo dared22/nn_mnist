@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
-from lowrank.optimizers.MultiOptim import MetaOptimizer
+from lowrank.optimizers.meta_optimizer import MetaOptimizer
 
 class Trainer:
     """

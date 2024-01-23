@@ -3,35 +3,53 @@ import torch
 import torch.nn as nn
 from typing import List
 from pathlib import Path
-import argparse
 
 # ----- Layers -----
-from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
-from lowrank.layers.dense_layer import DenseLayer
-from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
+from lowrank.layers import VanillaLowRankLayer
+from lowrank.layers import DenseLayer
+from lowrank.layers import DynamicLowRankLayer
 
 # ----- Optimizers -----
-from lowrank.optimizers.SGD import SimpleSGD
-from lowrank.optimizers.DynamO import DynamicLowRankOptimizer
+from lowrank.optimizers.simple_sgd import SimpleSGD
+from lowrank.optimizers.dynamic_low_rank_optimizer import DynamicLowRankOptimizer
 
 
 class ConfigParser:
     def __init__(self, path):
         """
-        Initialize the parser with the path to the TOML configuration file.
-
-        Parameters
-        ----------
-        path : str
-            The file path to the TOML configuration file.
+        Parser for loading and handling configuration from a TOML file.
 
         Attributes
         ----------
-        path : str
-            Stores the path to the configuration file.
-        config : dict
-            Stores the loaded configuration data.
+        path : Path
+            The path to the TOML configuration file.
+        batch_size : int
+            The batch size for training, read from config.
+        num_epochs : int
+            The number of epochs for training, read from config.
+        architecture : str
+            The network architecture type, read from config.
+        layers : list
+            The list of layer objects created based on the config.
+        optimizer_config : dict
+            Configuration dictionary for optimizers.
 
+        Methods
+        -------
+        load_config():
+            Loads and parses configuration from the TOML file.
+        create_layer(layer_config):
+            Creates a layer based on the configuration.
+        create_multiple_layers():
+            Creates multiple layers and forms a network based on the configuration.
+        parse_optimizer_config(optimizer_config_raw):
+            Parses and sets up optimizer configurations.
+        add_layer_mapping(layer_type, layer_class):
+            Adds a mapping from layer type to layer class.
+        add_optimizer_mapping(optimizer_type, optimizer_class):
+            Adds a mapping from optimizer type to optimizer class.
+        add_activation_mapping(activation_type, activation_class):
+            Adds a mapping from activation type to activation class.
         """
         self.path: Path = path
         self.batch_size: int
@@ -70,8 +88,8 @@ class ConfigParser:
 
     def load_config(self):
             """
-            Load and parse the configuration from the TOML file. If a value is not found, a default value is used.
-            Proper error handling is implemented to manage potential file reading and parsing issues.
+            Load and parse the configuration from the TOML file. Handles errors related
+            to file access and content parsing.
             """
             try:
                 with open(self.path, 'r') as file:
@@ -92,7 +110,6 @@ class ConfigParser:
             
             self.create_multiple_layers()
             self.parse_optimizer_config(optimizer_config)
-
 
 
     def create_layer(self, layer_config):
@@ -118,15 +135,18 @@ class ConfigParser:
             return layer_class(**layer_config)
         except TypeError as e:
             raise TypeError(f"Error creating layer {layer_type}: {e}") from e
+            print(f"Error creating layer {layer_type}: {e}")
+            return None
 
     def create_multiple_layers(self):
         """
-        Create a Feed Forward Network (FFN) based on the layer configuration.
+        Create a list of layers based on the configuration. The layers are created in the order they appear in the
+        configuration file. The layers are stored in the `layers` attribute and returned.
 
         Returns
         -------
-        model : torch.nn.Module
-            The constructed FFN.
+        layers : list
+            A list of layer objects created based on the configuration.
         """
         layers = []
         for layer_config in self.layers_config:
@@ -138,6 +158,9 @@ class ConfigParser:
         return layers
     
     def parse_optimizer_config(self, optimizer_config_raw):
+        """
+        Parses and sets up optimizer configuration dictionary for the MetaOptimizer.
+        """
         self.optimizer_config = {}
         for layer_type, opt_config in optimizer_config_raw.items():
             optimizer_class = self.optimizer_class_mapping.get(opt_config['type'].strip().lower())
@@ -147,22 +170,19 @@ class ConfigParser:
                 self.optimizer_config[layer_class] = (optimizer_class, opt_config.get('parameters', {}))
 
     def add_layer_mapping(self, layer_type, layer_class):
+        """
+        Add a mapping from layer type to layer class.
+        """
         self.layer_class_mapping[layer_type] = layer_class
 
     def add_optimizer_mapping(self, optimizer_type, optimizer_class):
+        """
+        Add a mapping from optimizer type to optimizer class.
+        """
         self.optimizer_class_mapping[optimizer_type] = optimizer_class
 
     def add_activation_mapping(self, activation_type, activation_class):
+        """
+        Add a mapping from activation type to activation class.
+        """
         self.activation_mapping[activation_type] = activation_class
-
-
-def parse_input():
-    parser = argparse.ArgumentParser(description='This script configurates a neural network based on a TOML file.')
-    parser.add_argument('-c', '--config', default='default_config.toml', help='Path to the TOML configuration file. Default is "default_config.toml"')
-    parser.add_argument('--flag', action='store_true', help='Set this flag for additional options.')
-
-    arguments = parser.parse_args()
-    config_path = arguments.config
-    flag = arguments.flag
-
-    return config_path, flag
