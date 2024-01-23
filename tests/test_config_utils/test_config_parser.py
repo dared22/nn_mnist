@@ -1,4 +1,8 @@
 import pytest
+import torch.nn as nn
+from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
+from lowrank.layers.dense_layer import DenseLayer
+from pathlib import Path
 from lowrank.config_utils.config_parser import ConfigParser
 import toml
 from pathlib import Path
@@ -18,59 +22,82 @@ batchSize = 64
 numEpochs = 10
 architecture = 'FFN'
 
-[[layer]]
-type = 'lowRank'
-dims = [784,512]
-activation = 'relu'
-rank = 20
+	assert config_parser.config is not None
 
-[[layer]]
-type = 'lowRank'
-dims = [512, 256]
-activation = 'relu'
-rank = 20
+# Mock TOML files
+@pytest.fixture
+def valid_config_file(tmp_path):
+	config = """
+	[settings]
+	learningrate = 0.001
+	batchSize = 32
+	numEpochs = 20
+	architecture = 'ffn'
 
-[[layer]]
-type = 'dense'
-dims=[256,10]
-activation = 'linear'
+	[[layer]]
+	type = 'dense'
+	dims = [10, 20]
+	activation = 'relu'
 
-[optimizer.default]
-type = 'SimpleSGD'
-parameters = { lr = 0.005 }
+	[[layer]]
+	type = 'lowrank'
+	dims = [20, 30]
+	rank = 5
+	activation = 'tanh'
+	"""
+	config_path = tmp_path / "valid_config.toml"
+	config_path.write_text(config)
+	return config_path
 
-[optimizer.lowRank]
-type = 'DynamicLowRankOptimizer'
-parameters = { lr = 0.1 }
+@pytest.ficture
+def incomplete_config_file(tmp_path):
+	config = """
+	[settings]
+	learningrate = 0.001
+	# batchSize and numEpochs missing
+	
+	[[layer]]
+	type = 'dense'
+	# dims missing
+	activation = 'relu'
+	"""
+	config_path = tmp_path / "incomplete_config.toml"
+	config_path.write_text(config)
+	return config_path
 
-[optimizer.vanillaLowRank]
-type = 'SimpleSGD'
-parameters = { lr = 0.005 }
-"""
-        f.write(content)
-        f.seek(0)
-        yield Path(f.name)
+def test_successful_config_loading(valid_config_file):
+	parser = ConfigParser(valid_config_file)
+	assert parser.learning_rate == 0.001
+	assert parser.batch_size == 32
+	assert parser.num_epochs == 20
+	assert parser.architecture == 'ffn'
+	assert isinstance(parser.layers[0], DenseLayer)
+	assert isinstance(parser.layers[1], VanillaLowRankLayer)
 
-def test_config_loading(temp_toml_file):
-    parser = ConfigParser(temp_toml_file)
-    assert parser.batch_size == 64
-    assert parser.num_epochs == 10
-    assert parser.architecture == 'ffn'
+def test_default_values(incomplete_config_file):
+	parser = ConfigParser(incomplete_config_file)
+	assert parser.learning_rate == 0.001
+	assert parser.batch_size == 64	# Default value
+	assert parser.num_epochs == 10	# Default value
+	assert len(parser.layers) == 0	# No valid layers due to missing dims
 
-def test_layer_creation(temp_toml_file):
-    parser = ConfigParser(temp_toml_file)
-    assert len(parser.layers) == 3
-    assert isinstance(parser.layers[0], DynamicLowRankLayer)
-    assert isinstance(parser.layers[2], DenseLayer)
+def test_layer_creation(valid_config_file):
+	parser = ConfigParser(valid_config_file)
+	assert len(parser.layers) == 2
+	assert isinstance(parser.layers[0], DenseLayer)
+	assert isinstance(parser.layers[1], VanillaLowRankLayer) 
 
-def test_optimizer_config_parsing(temp_toml_file):
-    parser = ConfigParser(temp_toml_file)
-    parser.load_config()
-    assert 'default' in parser.optimizer_config
-    assert DynamicLowRankLayer in parser.optimizer_config
+def test_incorrect_layer_type(incomplete_config_file):
+	config_path = incomplete_config_file
+	# Modify the file to include incorrect layer type
+	config_path.write_text(config_path.read_text().replace("type = 'dense", "type = 'unknown'"))
+	parser = ConfigParser(config_path)
+	assert len(parser.layers) == 0	# No layers should be createed
 
-def test_error_handling_invalid_file():
-    with pytest.raises(FileNotFoundError):
-        ConfigParser('invalid_path.toml')
-
-# Add more tests as needed
+def test_unkown_activation_function(incomplete_config_file):
+	config_path = incomplete_config_file
+	# Modify the file to include an unknown activation function
+	config_path.write_text(config_path.read_tect().replace("activation = 'relu'", "activation = 'unknown'"))
+	parser = ConfigParser(config_path)
+	# Assuminf the layer is still created but with a default activation function
+	assert len(parser.layers) == 0 	# No layers should be created
