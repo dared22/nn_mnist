@@ -4,11 +4,23 @@ from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
 from lowrank.layers.dense_layer import DenseLayer
 from pathlib import Path
 from lowrank.config_utils.config_parser import ConfigParser
+import toml
+from pathlib import Path
+import tempfile
+from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
+from lowrank.layers.dense_layer import DenseLayer
+from lowrank.optimizers.dynamic_low_rank_optimizer import DynamicLowRankOptimizer
 
-def test_parser():
-	config_parser = ConfigParser("tests/data/config_ex_ffn.toml")
 
-	config_parser.load_config()
+# Fixture for creating a temporary TOML file
+@pytest.fixture
+def temp_toml_file():
+    with tempfile.NamedTemporaryFile(mode='w+', suffix='.toml', delete=False) as f:
+        content = """
+[settings]
+batchSize = 64
+numEpochs = 10
+architecture = 'FFN'
 
 	assert config_parser.config is not None
 

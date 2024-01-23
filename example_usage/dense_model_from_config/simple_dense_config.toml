@@ -1,0 +1,22 @@
+[settings]
+batchSize = 64
+numEpochs = 10
+architecture = 'FFN'
+
+# -------------- Layers --------------
+
+[[layer]]
+type = 'vanillalowrank'
+dims = [784,64]
+activation = 'relu'
+rank = 20
+
+[[layer]]
+type = 'dense'
+dims = [64, 30]
+activation = 'relu'
+
+[[layer]]
+type = 'dense'
+dims=[30,10]
+activation = 'linear'

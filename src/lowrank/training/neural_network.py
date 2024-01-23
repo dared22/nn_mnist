@@ -40,8 +40,8 @@ class FeedForward(nn.Module):
             A list of neural network layers to be applied in sequence.
         """
         super(FeedForward, self).__init__()
-        self.flatten = nn.Flatten()
         self.layers = nn.ModuleList(layers)
+        self.config_parser = None
 
     def forward(self, X):
         """
@@ -61,7 +61,6 @@ class FeedForward(nn.Module):
         """
 
         for layer in self.layers:
-            X = self.flatten(X)
             X = layer(X)
         return X
 
@@ -86,32 +85,32 @@ class FeedForward(nn.Module):
         """
         # Instantiate your configuration parser
         config_parser = ConfigParser(path)
-        # Use the parser to create FFN configuration
         # Extract layers from the configuration
         # Create an instance of FeedForward with these layers
-        return FeedForward(config_parser.create_multiple_layers())
-    
+        model = FeedForward(config_parser.layers)
+        model.config_parser = config_parser
+        return model
 
-    def export_model(self, trained_nn, path):
+    def export_model(self, path):
         """
         Exports a trained neural network model's state dictionary to the specified path.
 
         Args:
             trained_nn (torch.nn.Module): The trained neural network model whose state dictionary is to be saved.
         """
-        torch.save(trained_nn.state_dict(), path)
+        torch.save(self.state_dict(), path)
 
-    def import_model(self,nn,path): #not working for some reason!!!
+    def import_model(self, path): #not working for some reason!!! might be fixed?
         """
         Imports a neural network model's state dictionary from the specified path.
-
+        
         Args:
-            nn (class): The neural network class to be instantiated and loaded.
-
+            path (str): Path to the file containing the model's state dictionary.
+        
         Returns:
-            The loaded neural network model with its state dictionary imported from the file.
-        """ 
-        nn.load_state_dict(torch.load(path))
+            None
+        """
+        self.load_state_dict(torch.load(path))
 
   
     
