@@ -42,6 +42,7 @@ class GUI:
 
         # Create NeuralNet
         self._NeuralNet = FeedForward.create_from_config(config_file_path)
+        self.nns = [] #delete later
 
 
     class TextRedirector(object):
@@ -64,7 +65,7 @@ class GUI:
         self.save_btn = ctk.CTkButton(self.app, text="Save Trained Model", command=self.save_model)
         self.save_btn.grid(row=3, column=1, pady=10, padx=10, sticky="ew")
 
-        self.button_training = ctk.CTkButton(self.app, text="Train NN", command=self.start_training_thread)
+        self.button_training = ctk.CTkButton(self.app, text="Train NN", command=lambda:self.start_training_thread(self._NeuralNet))
         self.button_training.grid(row=1, column=0, pady=10, padx=10, sticky="ew")
 
         self.button_predict = ctk.CTkButton(self.app, text="Predict a Number from mnist", command=self.predict_btn)
@@ -86,7 +87,6 @@ class GUI:
         sys.stdout = self.TextRedirector(self.output_area)
 
     def train_all(self):
-        nns = []
         def choose_folder():
             filename = filedialog.askdirectory(initialdir="/", title="Select a Folder")
             return filename
@@ -97,22 +97,23 @@ class GUI:
             toml_files = glob.glob(pattern)
             return toml_files
         paths = list_toml_files(choose_folder())
+        print(paths)
         for  path in paths:
             nn = FeedForward.create_from_config(path)
-            trained_nn, training_log = self.train_nn(nn)
-            nns.append(training_log)
-        print(nns)
+            print(path)
+            self.start_training_thread(nn)
 
     # Function to train the neural network
     def train_nn(self, nn):
         trainer = Trainer.create_from_model(nn) 
         trained_nn, training_log = trainer.train(self._trainloader, self._testloader)
+        self.nns.append(training_log) 
         self._NeuralNet = trained_nn
         return trained_nn, training_log
 
     # Function to start training in a separate thread
-    def start_training_thread(self):
-        training_thread = threading.Thread(target=self.train_nn, args=(self._NeuralNet,))
+    def start_training_thread(self, nn):
+        training_thread = threading.Thread(target=self.train_nn, args=(nn,))
         training_thread.start()
 
     # Function to browse files
