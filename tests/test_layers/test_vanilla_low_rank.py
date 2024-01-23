@@ -1,5 +1,5 @@
 import torch
-from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
+from lowrank.layers import VanillaLowRankLayer
 
 
 def test_instatiation():
@@ -8,7 +8,6 @@ def test_instatiation():
     assert layer.S.shape == (3, 3)
     assert layer.V.shape == (5, 3)
     assert layer.bias.shape == (5,)
-
 
 def test_forward_pass():
     input_size, output_size, rank = 10, 5, 3

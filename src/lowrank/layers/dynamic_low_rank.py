@@ -27,10 +27,10 @@ class DynamicLowRankLayer(nn.Module):
     ----------
     U : torch.nn.Parameter
         The left matrix in the low-rank approximation.
-    V : torch.nn.Parameter
-        The right matrix in the low-rank approximation.
     S : torch.nn.Parameter
         The square center matrix in the low-rank approximation.
+    V : torch.nn.Parameter
+        The right matrix in the low-rank approximation.
     bias : torch.nn.Parameter
         The bias vector.
 
@@ -58,8 +58,8 @@ class DynamicLowRankLayer(nn.Module):
 
         # Split the matrix into U and V (that are orthogonal)
         self.U = nn.Parameter(Q[:input_size, :])
-        self.V = nn.Parameter(Q[input_size:, :])
         self.S = nn.Parameter(torch.randn(rank, rank))
+        self.V = nn.Parameter(Q[input_size:, :])
         self.bias = nn.Parameter(torch.randn(output_size))
         self.activation = activation
 
