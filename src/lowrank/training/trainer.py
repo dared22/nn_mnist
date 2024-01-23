@@ -2,146 +2,158 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
-from lowrank.training.MNIST_downloader import Downloader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from lowrank.optimizers.SGD import SimpleSGD  
 from tqdm import tqdm
-from lowrank.optimizers.SGD import SimpleSGD
-from lowrank.config_utils.config_parser import ConfigParser
-from torchinfo import summary
-from lowrank.optimizers.MultiOptim import MetaOptimizer
-from datetime import datetime
+from lowrank.optimizers.meta_optimizer import MetaOptimizer
 
 class Trainer:
     """
-    A class for training and evaluating neural network models on the MNIST dataset.
-
-    This class manages the training process of a neural network using the MNIST dataset. It includes
-    functionality for both training and validation phases and logs the training process using TensorBoard.
+    A class for training and evaluating neural network models.
 
     Attributes:
-        batchSize (int): The number of samples per batch to be loaded in the DataLoader.
-        trainloader (DataLoader): DataLoader for the MNIST training dataset.
-        testloader (DataLoader): DataLoader for the MNIST testing dataset.
+        model (torch.nn.Module): The neural network model to be trained.
         writer (SummaryWriter): TensorBoard SummaryWriter for logging training and validation metrics.
-
-    Methods:
-        train: Trains a neural network model and evaluates its performance on the test dataset.
-        early_stopping: Method checks if the validation loss does not improve beyond a certain threshold (min_delta) for a specified number of epochs (tolerance).
+        best_accuracy (float): The highest validation accuracy achieved during training.
+        training_log (list): Log of training metrics for each epoch.
+        optimizer (torch.optim.Optimizer): Optimizer for the model.
+        criterion (callable): Loss function for the model.
+        num_epochs (int): Number of training epochs.
     """
 
-    def __init__(self, tqdm_file=None):
+    def __init__(self, model, optimizer, criterion, writer_dir='./runs'):
         """
-        Initializes the Trainer class with the specified batch size and sets up data loaders for the MNIST dataset.
-
-        The function also initializes a TensorBoard SummaryWriter to log training and validation metrics.
+        Initializes the Trainer class.
 
         Args:
-            batch_size (int): The number of samples per batch to be loaded in the DataLoader.
+            model (nn.Module): The neural network model.
+            optimizer (torch.optim.Optimizer): The optimizer for training the model.
+            criterion (callable): The loss function used for training.
+            writer_dir (str): Directory for storing TensorBoard logs.
         """
-        configparser = ConfigParser("tests/data/config_ex_ffn.toml")
-        configparser.load_config()
-        self.batchSize = configparser.batch_size
-        self.numIterations = configparser.num_epochs
-        self.lr = configparser.learning_rate
-        layer1_config = configparser.layers_config[0]
-        self.features = configparser.get_layer_params(layer1_config, ['dims'])['dims'][0] 
-        downloader = Downloader()
-        traindataset, testdataset = downloader.get_data()
-        self.trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
-        self.testloader = DataLoader(testdataset, batch_size=self.batchSize, shuffle=False)
-        self.writer = SummaryWriter('./runs')  # TensorBoard SummaryWriter
-        self.early_stopping_counter = 0
-        self.accuracy = ()
-        self.tqdm_file = tqdm_file
-        
+        self.model = model
+        self.optimizer = optimizer
+        self.criterion = criterion
+        self.num_epochs = model.config_parser.num_epochs
+        self.writer = SummaryWriter(writer_dir)
+        self.best_accuracy = 0.0
+        self.training_log = []
 
-    def train(self, NeuralNet, callback=None):
+    def train(self, train_dataloader: DataLoader, test_dataloader: DataLoader, patience: int = 3):
         """
-        Trains a neural network model using the MNIST dataset.
-
-        This method handles the training and validation process of a neural network. It employs 
-        a learning rate scheduler to adjust the learning rate during training, implements early 
-        stopping based on validation accuracy, and saves checkpoints of the model.
+        Trains the model and evaluates its performance on the test dataset.
 
         Args:
-            numIterations (int): The number of epochs to train the model.
-            lr (float): The initial learning rate for the optimizer.
-            NeuralNet (torch.nn.Module): The neural network model to be trained.
-            patience (int): The number of epochs to wait for improvement in validation accuracy 
-                            before triggering early stopping. Default is 2.
+            train_dataloader (DataLoader): The DataLoader for training data.
+            test_dataloader (DataLoader): The DataLoader for test data.
+            patience (int): Number of epochs to wait for improvement before stopping.
 
         Returns:
-            torch.nn.Module: The trained neural network model.
-
-        The training process logs training loss and validation accuracy using TensorBoard. The best model 
-        based on validation accuracy is saved. The learning rate is adjusted if the validation accuracy 
-        does not improve, and training is stopped early if there is no improvement in validation accuracy 
-        for a given number of epochs specified by 'patience'.
+            (nn.Module, list): The trained model and the training log.
         """
-        optimizer = MetaOptimizer(NeuralNet)
+        for epoch in range(self.num_epochs):
+            train_loss = self._train_epoch(train_dataloader, epoch)
+            val_accuracy, val_loss = self._validate_model(test_dataloader)
+
+            self.writer.add_scalar('Validation Accuracy', val_accuracy, epoch)
+            self.writer.add_scalar('Validation Loss', val_loss, epoch)
+
+            epoch_log = {
+                'epoch': epoch + 1,
+                'train_loss': train_loss,
+                'val_accuracy': val_accuracy,
+                'val_loss': val_loss
+            }
+            self.training_log.append(epoch_log)
+
+            if val_accuracy > self.best_accuracy:
+                self.best_accuracy = val_accuracy
+                model_save_path = f'./best_model_epoch_{epoch+1}.pt'
+                torch.save(self.model.state_dict(), model_save_path)
+
+            if self._early_stopping(val_loss, patience):
+                break
+
+        self.writer.close()
+        return self.model, self.training_log
+
+    def _train_epoch(self, train_dataloader: DataLoader, epoch: int) -> float:
+        """
+        Conducts a single training epoch.
+
+        Args:
+            train_dataloader (DataLoader): The DataLoader for training data.
+            epoch (int): The current epoch number.
+
+        Returns:
+            float: The average training loss for the epoch.
+        """
+        train_loss = 0.0
+        for _, (images, labels) in enumerate(tqdm(train_dataloader, desc=f'Epoch {epoch+1}/{self.num_epochs}')):
+            self.optimizer.zero_grad()
+            outputs = self.model(images)
+            loss = self.criterion(outputs, labels)
+            loss.backward()
+            self.optimizer.step()
+            train_loss += loss.item()
+        return train_loss / len(train_dataloader)
+
+    def _validate_model(self, test_dataloader: DataLoader) -> (float, float):
+        """
+        Evaluates the model on the test dataset.
+
+        Args:
+            test_dataloader (DataLoader): The DataLoader for test data.
+
+        Returns:
+            (float, float): Validation accuracy and validation loss.
+        """
+        self.model.eval()
+        val_loss = 0.0
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for images, labels in test_dataloader:
+                outputs = self.model(images)
+                loss = self.criterion(outputs, labels)
+                val_loss += loss.item()
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+        val_accuracy = correct / total
+        return val_accuracy, val_loss / len(test_dataloader)
+
+    def _early_stopping(self, validation_loss: float, patience: int) -> bool:
+        """
+        Checks if early stopping criteria are met.
+
+        Args:
+            validation_loss (float): The validation loss for the current epoch.
+            patience (int): The number of epochs to wait for improvement before stopping.
+
+        Returns:
+            bool: True if early stopping criteria are met, False otherwise.
+        """
+        if validation_loss < self.best_accuracy - 0.01:
+            self.early_stopping_counter = 0
+        else:
+            self.early_stopping_counter += 1
+            if self.early_stopping_counter >= patience:
+                return True
+        return False
+
+    @staticmethod
+    def create_from_model(model: nn.Module, writer_dir='./runs') -> 'Trainer':
+        """
+        Create a Trainer instance from an existing model. This model should have a config_parser attribute 
+        (i.e. the model should have been created using the FeedForward.create_from_config method).
+
+        Args:
+            model (nn.Module): The neural network model.
+            writer_dir (str): Directory for TensorBoard logs.
+
+        Returns:
+            Trainer: An instance of the Trainer class.
+        """
+        optimizer_config = model.config_parser.optimizer_config
+        optimizer = MetaOptimizer(model, optimizer_config)
         criterion = nn.CrossEntropyLoss()
-        # scheduler = ReduceLROnPlateau(optimizer, 'min')  # Learning rate scheduler
-        best_accuracy = 0.0
-        start_time = int(datetime.now().strftime('%M%S'))
-
-
-        for epoch in range(self.numIterations):
-            train_loss = 0.0
-            NeuralNet.train()  # Set the model to training mode
-
-            train_loader_progress = tqdm(self.trainloader, desc=f'Epoch {epoch+1}/{self.numIterations}')
-
-            for step, (images, labels) in enumerate(train_loader_progress):
-                optimizer.zero_grad()
-                out = NeuralNet(images)
-                loss = criterion(out, labels)
-                loss.backward()
-                optimizer.step()
-                train_loss += loss.item()
-        
-    
-
-                if (step + 1) % 100 == 0:
-                    train_loader_progress.set_description(f'Epoch [{epoch+1}/{self.numIterations}], Step [{step+1}/{len(self.trainloader)}], Loss: {loss.item():.4f}')
-                    self.writer.add_scalar('Training Loss', loss.item(), epoch*len(self.trainloader) + step)
-                
-            train_loss /= len(self.trainloader) # Calculate average training loss for the epoch
-
-
-            NeuralNet.eval()  # Set the model to evaluation mode
-            validation_loss = 0.0
-            correct = 0
-            total = 0
-            with torch.no_grad():
-                for images, labels in self.testloader:
-                    outputs = NeuralNet(images)
-                    loss = criterion(outputs, labels)
-                    validation_loss += loss.item()
-                    _, predicted = torch.max(outputs.data, 1)
-                    total += labels.size(0)
-                    correct += (predicted == labels).sum().item()
-            # Calculate average validation loss and accuracy
-            validation_loss /= len(self.testloader)
-            accuracy = correct / total
-            print(f'Epoch [{epoch+1}/{self.numIterations}], Validation Accuracy: {100 * accuracy:.2f}%, Validation Loss: {validation_loss:.4f}')
-            self.writer.add_scalar('Validation Accuracy', accuracy, epoch)
-            self.writer.add_scalar('Validation Loss', validation_loss, epoch)
-
-            # Check if current model is the best
-            if accuracy > best_accuracy:
-                self.accuracy = (accuracy,(epoch+1))
-                best_accuracy = accuracy
-                torch.save(NeuralNet.state_dict(), f'./data/best_model_at_epoch_{epoch+1}.pt')
-
-        self.writer.close()  # Close the TensorBoard writer
-        finish_time = int(datetime.now().strftime('%M%S'))
-        time_used = finish_time - start_time
-        min = time_used // 60
-        sec = time_used % 60
-        print(f'Training completed in {min}min {sec}s.')
-        print(f'The best accuracy was achieved at epoch nr.{self.accuracy[1]} with validation accuracy {100*self.accuracy[0]:.2f}%')
-        summary(NeuralNet, input_size=(self.batchSize,self.features))
-        return NeuralNet
-
-    
+        return Trainer(model, optimizer, criterion, writer_dir=writer_dir)

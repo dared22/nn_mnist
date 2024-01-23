@@ -94,8 +94,8 @@ class GUI:
         paths = list_toml_files(choose_folder())
         for  path in paths:
             nn = FeedForward.create_from_config(path)
-            trained_nn, accuracy, time = self.train_nn(nn)
-            nns.append((accuracy, time))
+            trained_nn, training_log = self.train_nn(nn)
+            nns.append(training_log)
         print(nns)
 
     # Function to train the neural network
@@ -103,9 +103,8 @@ class GUI:
         trainer = Trainer() 
         trained_nn = trainer.train(nn)
         self._NeuralNet = trained_nn
-        accuracy = trainer.accuracy
-        time = trainer.time
-        return trained_nn , accuracy, time
+        training_log = trainer.training_log
+        return trained_nn , training_log
 
     # Function to start training in a separate thread
     def start_training_thread(self):
