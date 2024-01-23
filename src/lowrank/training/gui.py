@@ -12,6 +12,9 @@ import io
 import numpy as np
 import os
 import glob
+from torch.utils.data import DataLoader
+from lowrank.training.MNIST_downloader import Downloader
+from lowrank.config_utils.config_parser import ConfigParser
 
 
 class GUI:
@@ -23,21 +26,23 @@ class GUI:
         self.app.columnconfigure(0, weight=1)
         self.app.columnconfigure(1, weight=1)
 
-        # Initialize variables
-        self._selected_filename = None
-
         # Create and place widgets
         self.create_widgets()
+        # Initialize variables
+        self._selected_filename = None
+        config_file_path = self.browse_files("Select a config file", (('Config Files', '*.toml'),('All files', '*.*')))
+        configparser = ConfigParser(config_file_path)
+        configparser.load_config()
+        self.batchSize = configparser.batch_size
+
+        downloader = Downloader()
+        traindataset, self.testdataset = downloader.get_data()
+        self._trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
+        self._testloader = DataLoader(self.testdataset, batch_size=self.batchSize, shuffle=False)
+
         # Create NeuralNet
-        # Check if 'config.toml' exists in the main directory
-        config_file_path = 'config.toml'
-        if os.path.exists(config_file_path):
-        # If the file exists, use it to create the neural network, as it says in the task
-            self._NeuralNet = FeedForward.create_from_config(config_file_path)
-        else:
-        # If the file does not exist, use the file browsing functionality
-            self._NeuralNet = FeedForward.create_from_config(
-            self.browse_files("Select a config file", (('toml files', '*.toml'), ('All files', '*.*'))))
+        self._NeuralNet = FeedForward.create_from_config(config_file_path)
+
 
     class TextRedirector(object):
         def __init__(self, widget):
@@ -100,11 +105,10 @@ class GUI:
 
     # Function to train the neural network
     def train_nn(self, nn):
-        trainer = Trainer() 
-        trained_nn = trainer.train(nn)
+        trainer = Trainer.create_from_model(nn) 
+        trained_nn, training_log = trainer.train(self._trainloader, self._testloader)
         self._NeuralNet = trained_nn
-        training_log = trainer.training_log
-        return trained_nn , training_log
+        return trained_nn, training_log
 
     # Function to start training in a separate thread
     def start_training_thread(self):
@@ -126,7 +130,7 @@ class GUI:
             print(f"Predicting with input: {input_value}")
             pop_up.destroy()  # Close the pop-up window after prediction
                 # Predict numbers from MNIST dataset
-            prediction, label = predict(self._NeuralNet, input_value)
+            prediction, label = predict(self._NeuralNet, input_value, self.testdataset)
             print(f'Model predicts: {prediction} and the actual number is {label}')
 
         # Create a pop-up window
@@ -143,7 +147,7 @@ class GUI:
 
     def load_model(self):
         trained_model = self._NeuralNet
-        self._NeuralNet.import_model(trained_model, self.browse_files("Select a model to load", (('PyTorch files', '*.pt'),('All files', '*.*')))) # Loading the trained weights into the model
+        self._NeuralNet.import_model(trained_model, (self.browse_files("Select a model to load", (('PyTorch files', '*.pt'),('All files', '*.*'))))) # Loading the trained weights into the model
         trained_model.eval()
         self._NeuralNet = trained_model
         

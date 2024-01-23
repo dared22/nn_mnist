@@ -36,6 +36,7 @@ class Trainer:
         self.writer = SummaryWriter(writer_dir)
         self.best_accuracy = 0.0
         self.training_log = []
+        self.early_stopping_counter = 0
 
     def train(self, train_dataloader: DataLoader, test_dataloader: DataLoader, patience: int = 3):
         """
@@ -55,6 +56,7 @@ class Trainer:
 
             self.writer.add_scalar('Validation Accuracy', val_accuracy, epoch)
             self.writer.add_scalar('Validation Loss', val_loss, epoch)
+            print(f'Epoch [{epoch+1}/{self.num_epochs}], Validation Accuracy: {100 * val_accuracy:.2f}%, Validation Loss: {val_loss:.4f}')
 
             epoch_log = {
                 'epoch': epoch + 1,
@@ -66,7 +68,7 @@ class Trainer:
 
             if val_accuracy > self.best_accuracy:
                 self.best_accuracy = val_accuracy
-                model_save_path = f'./best_model_epoch_{epoch+1}.pt'
+                model_save_path = f'./data/best_model_epoch_{epoch+1}.pt'
                 torch.save(self.model.state_dict(), model_save_path)
 
             if self._early_stopping(val_loss, patience):
