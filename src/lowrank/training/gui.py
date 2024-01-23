@@ -147,7 +147,7 @@ class GUI:
 
     def load_model(self):
         trained_model = self._NeuralNet
-        self._NeuralNet.import_model(trained_model, (self.browse_files("Select a model to load", (('PyTorch files', '*.pt'),('All files', '*.*'))))) # Loading the trained weights into the model
+        self._NeuralNet.import_model(trained_model, self.browse_files("Select a model to load", (('PyTorch files', '*.pt'),('All files', '*.*')))) # Loading the trained weights into the model
         trained_model.eval()
         self._NeuralNet = trained_model
         

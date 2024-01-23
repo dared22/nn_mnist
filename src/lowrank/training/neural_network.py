@@ -100,17 +100,17 @@ class FeedForward(nn.Module):
         """
         torch.save(self.state_dict(), path)
 
-    def import_model(self, path): #not working for some reason!!! might be fixed?
+    def import_model(self,nn, path): 
         """
         Imports a neural network model's state dictionary from the specified path.
-        
+
         Args:
-            path (str): Path to the file containing the model's state dictionary.
-        
+            nn (class): The neural network class to be instantiated and loaded.
+
         Returns:
-            None
-        """
-        self.load_state_dict(torch.load(path))
+            The loaded neural network model with its state dictionary imported from the file.
+        """ 
+        nn.load_state_dict(torch.load(path))
 
   
     
