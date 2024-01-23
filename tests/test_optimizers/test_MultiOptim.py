@@ -1,7 +1,8 @@
 import torch
 import torch.nn as nn
 import pytest
-from lowrank.optimizers.MultiOptim import MetaOptimizer, DynamicLowRankLayer, SimpleSGD, DynamicLowRankOptimizer
+from lowrank.optimizers import MetaOptimizer, SimpleSGD, DynamicLowRankOptimizer
+from lowrank.layers import DynamicLowRankLayer
 
 @pytest.fixture
 def simple_model():

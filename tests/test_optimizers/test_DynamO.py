@@ -1,6 +1,6 @@
 import torch
 import pytest
-from lowrank.optimizers.DynamO import DynamicLowRankOptimizer
+from lowrank.optimizers import DynamicLowRankOptimizer
 
 @pytest.fixture
 def model_params():

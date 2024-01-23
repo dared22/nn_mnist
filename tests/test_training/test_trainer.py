@@ -2,8 +2,8 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.utils.data
-from torch.utils.data.
-import torch.utils.tensorboard.writer.
+from torch.utils.data import DataLoader
+import torch.utils.tensorboard.writer as SummaryWriter
 
 from lowrank.training.trainer import Trainer
 from pathlib import Path

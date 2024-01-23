@@ -1,6 +1,6 @@
 import pytest
 import torch
-from lowrank.optimizers.SGD import SimpleSGD
+from lowrank.optimizers import SimpleSGD
 
 @pytest.fixture
 def mock_parameters():
@@ -18,7 +18,7 @@ def test_step_function_updates_parameters(mock_parameters):
     optimizer.zero_grad()
 
     # Simulate a backward pass
-    loss = mock_parameters[o].sum()
+    loss = mock_parameters[0].sum()
     loss.backward()
 
     optimizer.step()
