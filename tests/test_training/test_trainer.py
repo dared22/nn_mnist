@@ -4,52 +4,60 @@ import torch.nn as nn
 import torch.utils.data
 from torch.utils.data import DataLoader
 import torch.utils.tensorboard.writer as SummaryWriter
-
 from lowrank.training.trainer import Trainer
 from pathlib import Path
+from lowrank.training.neural_network import FeedForward
+from lowrank.training.MNIST_downloader import Downloader
 
-# A mock model to test the trainer
-class MockModel(nn.Module):
-    def __init__(self):
-        super(MockModel, self).__init__
-        self.fc = nn.Linear(784, 10)
 
-        def forward(self, x):
-            return self.fc(x.view(x.size(0), -1))
-        
+#Download data
+downloader = Downloader()
+train, test = downloader.get_data()       
+
 
 @pytest.fixture
 def mock_trainer():
-    return Trainer()
+    model = FeedForward.create_from_config('./report_figures_code/config_files/config_rank_5.toml')
+    return Trainer.create_from_model(model)
+#trainloader
+@pytest.fixture
+def train_dataloader():
+    train_dataset = train
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    return train_loader
+#testloader
+@pytest.fixture
+def test_dataloader():
+    test_dataset = test 
+    test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False)
+    return test_loader
 
-def test_data_loader_initialization(mock_trainer):
-    assert isinstance(mock_trainer.trainloader, torch.utils.data.DataLoader)
-    assert isinstance(mock_trainer.testloader, torch.utils.data.DataLoader)
 
-def test_training_proscess(mock_trainer):
-    model = MockModel()
-    initial_state_dict = model.state_dict()
-    trained_model = mock_trainer.train(model)
+#Test Training Process
+def test_training_process(mock_trainer, train_dataloader, test_dataloader):
+    initial_state_dict = mock_trainer.model.state_dict()
+    trained_model, _ = mock_trainer.train(train_dataloader, test_dataloader)
     trained_model_state_dict = trained_model.state_dict()
     assert not all(torch.equal(initial_state_dict[k], trained_model_state_dict[k]) for k in initial_state_dict)
 
+#Test Early Stopping Functionality
 def test_early_stopping_functionality(mock_trainer):
-    # simulate conditions for early stopping
     mock_trainer.early_stopping_counter = 2
-    assert not mock_trainer.early_stopping(0.1, 0.2, 0.01, 3)
-    assert mock_trainer.early_stopping(0.1, 0.2, 0.01, 2)
+    stopped = mock_trainer._early_stopping(0.2, 3) 
+    assert stopped, "Early stopping did not trigger as expected"
 
+#Test Logging with TensorBoard
 def test_logging_with_tensorboard(mock_trainer):
-    # Ensure TensorBoard SummarWriter is initialized
     assert isinstance(mock_trainer.writer, torch.utils.tensorboard.writer.SummaryWriter)
 
-def test_model_saving(mock_trainer):
-    model = MockModel()
-    mock_trainer.train(model)
-    saved_model_path = Path(f'./data/best_model_at_epoch_{mock_trainer.accuracy[1]}.pt')
+#Test Model Saving
+def test_model_saving(mock_trainer, train_dataloader, test_dataloader):
+    trained_model, _ = mock_trainer.train(train_dataloader, test_dataloader)
+    saved_model_path = Path(f'./data/best_model_epoch_{mock_trainer.num_epochs}.pt')
     assert saved_model_path.exists()
 
-def test_training_output(mock_trainer):
-    model = MockModel()
-    trained_model = mock_trainer.train(model)
+#Test Training Output
+def test_training_output(mock_trainer, train_dataloader, test_dataloader):
+    trained_model, training_log = mock_trainer.train(train_dataloader, test_dataloader)
     assert isinstance(trained_model, nn.Module)
+    assert isinstance(training_log, list)
