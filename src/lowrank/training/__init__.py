@@ -4,3 +4,4 @@
 
 from .neural_network import FeedForward
 from .trainer import Trainer
+from .MNIST_downloader import MNIST_downloader

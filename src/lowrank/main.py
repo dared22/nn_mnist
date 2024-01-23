@@ -1,6 +1,6 @@
 from lowrank.training.trainer import Trainer
 from lowrank.training.neural_network import FeedForward
-from lowrank.training.MNIST_downloader import Downloader  # Ensure you have the correct import for Downloader
+from lowrank.training.MNIST_downloader import Downloader
 from lowrank.predict import predict, show_image
 #import tkinter as tk
 import customtkinter as ctk
@@ -26,8 +26,8 @@ class TextRedirector(object):
 def train_nn(path):
     global nn
     NeuralNet = FeedForward.create_from_config(path)
-    trainer = Trainer()
-    trained_nn = trainer.train(NeuralNet)
+    trainer = Trainer.create_from_model(NeuralNet)
+    trained_nn = trainer.train()
     nn = trained_nn
 
 # Function to start training in a separate thread
