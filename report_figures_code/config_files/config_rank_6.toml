@@ -1,4 +1,7 @@
 [[layer]]
+type = "flatten"
+
+[[layer]]
 type = "lowRank"
 dims = [ 784, 256,]
 activation = "relu"
