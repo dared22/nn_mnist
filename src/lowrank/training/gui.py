@@ -29,7 +29,15 @@ class GUI:
         # Create and place widgets
         self.create_widgets()
         # Create NeuralNet
-        self._NeuralNet = FeedForward.create_from_config(self.browse_files("Select a configfile", (('toml files', '*.toml'), ('All files', '*.*'))))
+        # Check if 'config.toml' exists in the main directory
+        config_file_path = 'config.toml'
+        if os.path.exists(config_file_path):
+        # If the file exists, use it to create the neural network, as it says in the task
+            self._NeuralNet = FeedForward.create_from_config(config_file_path)
+        else:
+        # If the file does not exist, use the file browsing functionality
+            self._NeuralNet = FeedForward.create_from_config(
+            self.browse_files("Select a config file", (('toml files', '*.toml'), ('All files', '*.*'))))
 
     class TextRedirector(object):
         def __init__(self, widget):
@@ -63,7 +71,7 @@ class GUI:
         self.load_model_btn = ctk.CTkButton(self.app, text='Load Trained Model', command=self.load_model)
         self.load_model_btn.grid(row=3, column=0, pady=10, padx=10, sticky="ew")
 
-        self.feature_btn = ctk.CTkButton(self.app, text='Leo`s Feature', command=self.feature)
+        self.feature_btn = ctk.CTkButton(self.app, text='Train all from folder', command=self.train_all)
         self.feature_btn.grid(row=1, column=1, pady=10, padx=10, sticky="ew")
 
         self.output_area = st.ScrolledText(self.app, height=10)
@@ -72,7 +80,7 @@ class GUI:
         # Redirect stdout to the output area
         sys.stdout = self.TextRedirector(self.output_area)
 
-    def feature(self):
+    def train_all(self):
         nns = []
         def choose_folder():
             filename = filedialog.askdirectory(initialdir="/", title="Select a Folder")
@@ -84,16 +92,20 @@ class GUI:
             toml_files = glob.glob(pattern)
             return toml_files
         paths = list_toml_files(choose_folder())
-        for path in paths:
+        for  path in paths:
             nn = FeedForward.create_from_config(path)
-            nns.append(self.train_nn(nn))
+            trained_nn, accuracy, time = self.train_nn(nn)
+            nns.append((accuracy, time))
+        print(nns)
 
     # Function to train the neural network
     def train_nn(self, nn):
         trainer = Trainer() 
         trained_nn = trainer.train(nn)
         self._NeuralNet = trained_nn
-        return trained_nn
+        accuracy = trainer.accuracy
+        time = trainer.time
+        return trained_nn , accuracy, time
 
     # Function to start training in a separate thread
     def start_training_thread(self):
