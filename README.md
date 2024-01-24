@@ -56,7 +56,7 @@ DynamO offers various modes of operation to suit different user needs. Below are
 ### Graphical User Interface (GUI) Mode
 For an interactive experience with a user-friendly graphical interface, use the GUI mode. This mode is ideal for those who prefer a visual approach to network training and analysis. To launch the GUI, execute the following command in your terminal:
 ```bash
-python main --gui True
+python main --gui
 ```
 
 ### Training with Default Configuration
