@@ -65,6 +65,7 @@ class ConfigParser:
             'lowrank': DynamicLowRankLayer,
             'dense': DenseLayer,
             'flatten': nn.Flatten,
+            'softmax': nn.Softmax,
             # Add other mappings as needed
         }
 

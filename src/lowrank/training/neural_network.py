@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from lowrank.config_utils.config_parser import ConfigParser
+import os
+import glob
 
 class FeedForward(nn.Module):
     """
@@ -111,6 +113,29 @@ class FeedForward(nn.Module):
             The loaded neural network model with its state dictionary imported from the file.
         """ 
         nn.load_state_dict(torch.load(path))
+
+    @staticmethod
+    def mass_create_models(directory):
+        """
+        Creates a dictionary of FeedForward models from all .toml configuration files in the specified directory.
+
+        Parameters
+        ----------
+        directory : str
+            The path to the directory containing .toml configuration files.
+
+        Returns
+        -------
+        dict
+            A dictionary with filenames as keys (without the .toml extension) and instantiated FeedForward objects as values.
+        """
+        models = {}
+        # List all .toml files in the directory
+        for filepath in glob.glob(os.path.join(directory, '*.toml')):
+            filename = os.path.basename(filepath).rsplit('.', 1)[0]
+            model = FeedForward.create_from_config(filepath)
+            models[filename] = model
+        return models
 
   
     

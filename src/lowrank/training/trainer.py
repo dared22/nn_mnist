@@ -158,4 +158,4 @@ class Trainer:
         optimizer_config = model.config_parser.optimizer_config
         optimizer = MetaOptimizer(model, optimizer_config)
         criterion = nn.CrossEntropyLoss()
-        return Trainer(model, optimizer, criterion, writer_dir=writer_dir)
+        return Trainer(model, optimizer, criterion, writer_dir=writer_dir) 

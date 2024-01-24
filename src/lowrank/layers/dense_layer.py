@@ -26,9 +26,10 @@ class DenseLayer(nn.Module):
 
     def __init__(self, input_size, output_size, activation=None):
         super(DenseLayer, self).__init__()
-        # initialize weights and bias to random values (not HE)
+        # initialize weights and bias
         self.weight = nn.Parameter(torch.randn(input_size, output_size))
-        self.bias = nn.Parameter(torch.zeros(output_size))
+        init.kaiming_uniform_(self.weight, nonlinearity='relu') # Should not be hardcoded, but well ...
+        self.bias = nn.Parameter(torch.randn(output_size))
         self.activation = activation
 
     def forward(self, x):

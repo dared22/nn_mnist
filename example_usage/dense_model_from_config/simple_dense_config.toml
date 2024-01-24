@@ -4,6 +4,8 @@ numEpochs = 10
 architecture = 'FFN'
 
 # -------------- Layers --------------
+[[layer]]
+type = 'flatten'
 
 [[layer]]
 type = 'vanillalowrank'
