@@ -1,23 +1,27 @@
 [settings]
 batchSize = 64
-numEpochs = 1
+numEpochs = 30
 architecture = 'FFN'
 
 # define network architecture
-# possible layer types are 'dense', 'lowRank', and 'vanillaLowRank'
+# possible layer types are 'dense', 'lowRank', and 'vanillaLowRank', 'flatten',
 # possible activations are 'relu', 'linear', 'sigmoid', 'tanh'
 
 [[layer]]
-type = 'lowRank'
-dims = [784,256]
-activation = 'relu'
-rank = 50
+type = 'flatten'
 
 [[layer]]
 type = 'lowRank'
-dims = [256, 64]
+dims = [784,128]
 activation = 'relu'
-rank = 50
+rank = 20
+
+[[layer]]
+type = 'lowRank'
+dims = [128, 64]
+activation = 'relu'
+rank = 20
+
 
 [[layer]]
 type = 'dense'
@@ -28,12 +32,12 @@ activation = 'linear'
 # ---------- Optimizer Config --------------
 
 [optimizer.default]
-type = 'SimpleSGD'
+type = 'adam'
 parameters = { lr = 0.005 }
 
 [optimizer.lowRank]
 type = 'DynamicLowRankOptimizer'
-parameters = { lr = 0.1 }
+parameters = { lr = 0.05 }
 
 [optimizer.vanillaLowRank]
 type = 'SimpleSGD'
