@@ -48,3 +48,24 @@ parameters = { lr = 0.005 }
 type = 'DynamicLowRankOptimizer'
 parameters = { lr = 0.1 }
 ```
+
+To run the network:
+
+    For GUI usage: Navigate to src/lowrank/main.py and execute the file.
+    For custom implementations: Import the desired modules and piece them together as needed.
+
+Sample instantiation code:
+
+```python
+model = FeedForward.create_from_config("PATH_TO_YOUR_CONFIG")
+trainer = Trainer.create_from_model(model)
+trainer.train(your_train_dataloader, your_test_dataloader)
+```
+
+Further Documentation
+
+For detailed information on software architecture, modularity, and specific functionalities like GUI and MetaOptimizer, please refer to the included LaTeX documentation.
+
+Acknowledgments
+
+This project is developed as part of coursework in the course INF202 at the Norwegian University of Life Sciences (NMBU).
