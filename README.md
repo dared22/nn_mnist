@@ -51,7 +51,7 @@ parameters = { lr = 0.1 }
 
 To run the network:
 
-DynamO offers various modes of operation to suit different user needs. Below are the instructions for each mode:
+DynamO offers various modes of operation to suit different user needs. Below are the instructions for each mode. All assume that you have navigated to src/lowrank:
 
 ### Graphical User Interface (GUI) Mode
 For an interactive experience with a user-friendly graphical interface, use the GUI mode. This mode is ideal for those who prefer a visual approach to network training and analysis. To launch the GUI, execute the following command in your terminal:
