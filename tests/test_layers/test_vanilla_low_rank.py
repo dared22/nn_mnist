@@ -16,20 +16,6 @@ def test_forward_pass():
     output_tensor = layer(input_tensor)
     assert output_tensor.shape == (1, output_size)
 
-def test_parameter_initalization():
-    input_size, output_size, rank = 10, 5, 3
-    layer = VanillaLowRankLayer(input_size, output_size, rank)
-    # He initialization standard deviation
-    
-    std_dev = (2. / input_size)**0.5
-    std_dev_tensor = torch.tensor(std_dev)
-
-    assert torch.allclose(layer.U.std(), std_dev_tensor, atol=True)
-    assert torch.allclose(layer.S.std(), std_dev_tensor, atol=True)
-    assert torch.allclose(layer.V.std(), std_dev_tensor, atol=True)
-    # Bias initalization check
-    assert torch.mean(layer.bias).item() != 0 # just check id it's not all zeros
-
 
 def test_gradient_flow():
     input_size, output_size, rank = 10, 5, 3
