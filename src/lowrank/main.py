@@ -10,7 +10,34 @@ from lowrank.config_utils.config_parser import ConfigParser
 from torch.utils.data import DataLoader
 
 class NNTrainerCLI:
+    """
+    A class for training neural network models from configuration files.
+
+    Parameters
+    ----------
+    config_path : str, optional
+        Path to the TOML configuration file. Defaults to 'config.toml' if not provided.
+
+    Attributes
+    ----------
+    _trainloader : DataLoader
+        DataLoader for the training dataset.
+    _testloader : DataLoader
+        DataLoader for the test dataset.
+    _NeuralNet : FeedForward
+        The neural network model to be trained.
+    batchSize : int
+        Batch size for training, read from the config file.
+    """
+
     def __init__(self, config_path=None):
+        """
+        Initializes the NNTrainerCLI with an optional configuration file path.
+
+        Args:
+            config_path (str, optional): Path to the TOML configuration file. 
+                                         If not provided, defaults to 'config.toml'.
+        """
         self.config_path = config_path or 'config.toml'
         self._trainloader = None
         self._testloader = None
@@ -21,6 +48,14 @@ class NNTrainerCLI:
             self.download_data()
 
     def load_config(self):
+        """
+        Loads training configuration from the TOML file specified in config_path.
+
+        Raises
+        ------
+        FileNotFoundError
+            If the configuration file is not found.
+        """
         if not os.path.isfile(self.config_path):
             raise FileNotFoundError(f"Config file not found at {self.config_path}")
         configparser = ConfigParser(self.config_path)
@@ -28,6 +63,9 @@ class NNTrainerCLI:
         self.batchSize = configparser.batch_size
 
     def download_data(self):
+        """
+        Downloads the training and test datasets using the MNIST downloader.
+        """
         downloader = Downloader()
         traindataset, testdataset = downloader.get_data()
         self._trainloader = DataLoader(traindataset, batch_size=self.batchSize, shuffle=True)
@@ -35,12 +73,26 @@ class NNTrainerCLI:
         self._NeuralNet = FeedForward.create_from_config(self.config_path)
 
     def train_nn(self):
+        """
+        Trains the neural network model using the loaded configuration and data.
+
+        Prints the training log upon completion.
+        """
         trainer = Trainer.create_from_model(self._NeuralNet)
         trained_nn, training_log = trainer.train(self._trainloader, self._testloader)
         self._NeuralNet = trained_nn
         print("Training completed. Log: ", training_log)
 
     def train_all_from_folder(self, folder_path):
+        """
+        Trains multiple neural network models from configuration files located in the specified folder.
+        Each model is saved to a file after training.
+
+        Parameters
+        ----------
+        folder_path : str
+            Path to the folder containing TOML configuration files.
+        """
         models = FeedForward.mass_create_models(folder_path)
         for filename, model in models.items():
             self._NeuralNet = model
@@ -60,6 +112,9 @@ class NNTrainerCLI:
 
 
 def launch_gui():
+    """
+    Launches GUI
+    """
     app = ctk.CTk()
     gui = GUI(app)
     app.mainloop()
