@@ -51,12 +51,32 @@ parameters = { lr = 0.1 }
 
 To run the network:
 
-    For GUI usage: Navigate to src/lowrank/main.py and execute the file.
-    For custom implementations: Import the desired modules and piece them together as needed.
+DynamO offers various modes of operation to suit different user needs. Below are the instructions for each mode:
+
+### Graphical User Interface (GUI) Mode
+For an interactive experience with a user-friendly graphical interface, use the GUI mode. This mode is ideal for those who prefer a visual approach to network training and analysis. To launch the GUI, execute the following command in your terminal:
+```bash
+python main --gui True
+```
+
+### Training with Default Configuration
+To train a neural network using the default configuration settings provided by the framework, use the base training mode. This mode is useful for quick experiments or initial evaluations. Run the following command to start training with the base configuration:
+```bash
+python main
+```
+
+### Training with Custom Configuration
+For more advanced use-cases where you need to customize the network architecture or training parameters, use the custom configuration mode. Replace PATH_TO_YOUR_CONFIG with the actual path to your TOML configuration file. This command allows you to train the network as per your specific requirements:
+```bash
+python main --config PATH_TO_YOUR_CONFIG
+```
+
+For developers or researchers who require a more tailored setup, DynamO provides the flexibility to create custom implementations. You can import the necessary modules from the framework and piece them together according to your project needs. 
 
 Sample instantiation code:
 
 ```python
+from lowrank.training import FeedForward, Trainer
 model = FeedForward.create_from_config("PATH_TO_YOUR_CONFIG")
 trainer = Trainer.create_from_model(model)
 trainer.train(your_train_dataloader, your_test_dataloader)
