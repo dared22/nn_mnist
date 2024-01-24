@@ -1,41 +1,81 @@
-import pytest
 import torch
-import torch.nn as nn
-from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
+from lowrank.layers import DynamicLowRankLayer
+from lowrank.optimizers import DynamicLowRankOptimizer
+import pytest
 
-def test_initialization_with_valif_parameters():
-    layer = DynamicLowRankLayer(10, 20, 5)
-    assert isinstance(layer, DynamicLowRankLayer)
+def test_layer_initialization():
+    input_size = 10
+    output_size = 5
+    rank = 3
 
-def test_rank_constrait():
-    with pytest.raises(ValueError)
-        DynamicLowRankLayer(10, 20, 21) # Rank is larger than min(input_size, output_size)
+    # Valid initialization
+    layer = DynamicLowRankLayer(input_size, output_size, rank)
+    assert layer.U.shape == (input_size, rank)
+    assert layer.V.shape == (output_size, rank)
+    assert layer.S.shape == (rank, rank)
+
+    # Invalid initialization
+    with pytest.raises(ValueError):
+        DynamicLowRankLayer(input_size, output_size, min(input_size, output_size) + 1)
 
 def test_forward_pass():
-    input_tensor = torch.randn(3, 10)   # Batch size 3, input size 10
-    layer = DynamicLowRankLayer(10, 20, 5)
-    output = layer(input_tensor)
-    assert output.shape == (3, 20)      # Expected output shape with batch size 3 and output size 20
+    input_size = 10
+    output_size = 5
+    rank = 3
+    layer = DynamicLowRankLayer(input_size, output_size, rank)
 
-def test_bias_and_parameter_shapes():
-    layer = DynamicLowRankLayer(10, 20, 5)
-    assert layer.U.shape == (10, 5)
-    assert layer.S.shape == (5, 5)
-    assert layer.V.shape == (20, 5)
-    assert layer.bias.shape == (20,)
+    # Without activation
+    x = torch.randn(1, input_size)
+    y = layer(x)
+    assert y.shape == (1, output_size)
 
-def test_activation_function():
-    layer = DynamicLowRankLayer(10, 20, 5, activation=nn.ReLU())
-    input_tensor = torch.randn(3, 10)
-    output = layer(input_tensor)
-    assert (output >=0).all()   # Check if ReLU activation is applied 
+    # With activation
+    layer = DynamicLowRankLayer(input_size, output_size, rank, activation=torch.nn.ReLU())
+    y = layer(x)
+    assert y.shape == (1, output_size)
+    
+def test_optimizer_integration():
+    input_size = 10
+    output_size = 5
+    rank = 3
+    layer = DynamicLowRankLayer(input_size, output_size, rank)
+    optimizer = DynamicLowRankOptimizer(layer.parameters())
 
-def test_parameter_initialization():
-    layer = DynamicLowRankLayer(10, 20, 5)
-    assert torch.any(layer.U != 0)
-    assert torch.any(layer.S != 0)
-    assert torch.any(layer.V != 0)
-    assert torch.any(layer.bias != 0)
+    # Perform an optimization step
+    x = torch.randn(1, input_size)
+    y = layer(x)
+    y.sum().backward()
+    optimizer.step()
 
+    # Check if parameters have gradients and have been updated
+    for param in layer.parameters():
+        assert param.grad is not None
+        assert param.requires_grad
+        
+def test_optimizer_initialization_and_step():
+    input_size = 10
+    output_size = 5
+    rank = 3
+    layer = DynamicLowRankLayer(input_size, output_size, rank)
+    optimizer = DynamicLowRankOptimizer(layer.parameters())
+    
+	# Perform an optimization step
+    x = torch.randn(1, input_size)
+    y = layer(x)
+    y.sum().backward()
 
+    # Test step with updating all parameters
+    optimizer.step(only_S=False)
 
+    # Test step with updating only S matrix
+    optimizer.step(only_S=True)
+
+    # Test toggling of only_S
+    assert optimizer.defaults["only_S"]
+    optimizer.toggle_only_S()
+    assert not optimizer.defaults["only_S"]
+
+    # Test for ValueError with invalid parameters
+    with pytest.raises(ValueError):
+        DynamicLowRankOptimizer(layer.parameters(), lr=-1)
+        

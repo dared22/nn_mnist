@@ -4,88 +4,68 @@ from lowrank.layers.vanilla_low_rank import VanillaLowRankLayer
 from lowrank.layers.dense_layer import DenseLayer
 from pathlib import Path
 from lowrank.config_utils.config_parser import ConfigParser
+import toml
+from pathlib import Path
+import tempfile
+from lowrank.layers.dynamic_low_rank import DynamicLowRankLayer
+from lowrank.layers.dense_layer import DenseLayer
+from lowrank.optimizers.dynamic_low_rank_optimizer import DynamicLowRankOptimizer
 
-def test_parser():
-	config_parser = ConfigParser("tests/data/config_ex_ffn.toml")
 
-	config_parser.load_config()
-
-	assert config_parser.config is not None
-
-# Mock TOML files
 @pytest.fixture
-def valid_config_file(tmp_path):
-	config = """
-	[settings]
-	learningrate = 0.001
-	batchSize = 32
-	numEpochs = 20
-	architecture = 'ffn'
+def valid_config_path(tmp_path):
+    config = {
+        'settings': {'batchSize': 32, 'numEpochs': 20, 'architecture': 'ffn'},
+        'layer': [{'type': 'dense', 'dims': [128, 64], 'activation': 'relu'}],
+        'optimizer': {'dense': {'type': 'simplesgd', 'parameters': {'lr': 0.01}}}
+    }
+    config_file = tmp_path / "config.toml"
+    with open(config_file, 'w') as file:
+        toml.dump(config, file)
+    return config_file
 
-	[[layer]]
-	type = 'dense'
-	dims = [10, 20]
-	activation = 'relu'
+@pytest.fixture
+def invalid_config_path():
+    return 'nonexistent_path.toml'
 
-	[[layer]]
-	type = 'lowrank'
-	dims = [20, 30]
-	rank = 5
-	activation = 'tanh'
-	"""
-	config_path = tmp_path / "valid_config.toml"
-	config_path.write_text(config)
-	return config_path
+# Test Initialization with a valid configuration file
+def test_initialization_with_valid_config(valid_config_path):
+    parser = ConfigParser(valid_config_path)
+    assert parser.batch_size == 32
+    assert parser.num_epochs == 20
+    assert parser.architecture == 'ffn'
+    # Add more assertions based on the expected state of the parser
 
-@pytest.ficture
-def incomplete_config_file(tmp_path):
-	config = """
-	[settings]
-	learningrate = 0.001
-	# batchSize and numEpochs missing
-	
-	[[layer]]
-	type = 'dense'
-	# dims missing
-	activation = 'relu'
-	"""
-	config_path = tmp_path / "incomplete_config.toml"
-	config_path.write_text(config)
-	return config_path
+# Test Initialization with an invalid configuration file
+def test_initialization_with_invalid_config(invalid_config_path):
+    with pytest.raises(FileNotFoundError):
+        _ = ConfigParser(invalid_config_path)
 
-def test_successful_config_loading(valid_config_file):
-	parser = ConfigParser(valid_config_file)
-	assert parser.learning_rate == 0.001
-	assert parser.batch_size == 32
-	assert parser.num_epochs == 20
-	assert parser.architecture == 'ffn'
-	assert isinstance(parser.layers[0], DenseLayer)
-	assert isinstance(parser.layers[1], VanillaLowRankLayer)
+#def create_layer
 
-def test_default_values(incomplete_config_file):
-	parser = ConfigParser(incomplete_config_file)
-	assert parser.learning_rate == 0.001
-	assert parser.batch_size == 64	# Default value
-	assert parser.num_epochs == 10	# Default value
-	assert len(parser.layers) == 0	# No valid layers due to missing dims
+def test_create_layer_error_handling(valid_config_path):
+    parser = ConfigParser(valid_config_path)
+    invalid_layer_config = {'type': 'unknown_layer'}
+    with pytest.raises(TypeError):
+        _ = parser.create_layer(invalid_layer_config)
 
-def test_layer_creation(valid_config_file):
-	parser = ConfigParser(valid_config_file)
-	assert len(parser.layers) == 2
-	assert isinstance(parser.layers[0], DenseLayer)
-	assert isinstance(parser.layers[1], VanillaLowRankLayer) 
+# Test Layer and Optimizer Class Mappings
+def test_layer_optimizer_class_mappings(valid_config_path):
+    parser = ConfigParser(valid_config_path)
+    # Assuming VanillaLowRankLayer and DynamicLowRankOptimizer are valid types
+    assert parser.layer_class_mapping['vanillalowrank'] == VanillaLowRankLayer
+    assert parser.optimizer_class_mapping['dynamiclowrankoptimizer'] == DynamicLowRankOptimizer
 
-def test_incorrect_layer_type(incomplete_config_file):
-	config_path = incomplete_config_file
-	# Modify the file to include incorrect layer type
-	config_path.write_text(config_path.read_text().replace("type = 'dense", "type = 'unknown'"))
-	parser = ConfigParser(config_path)
-	assert len(parser.layers) == 0	# No layers should be createed
+# Test Activation Function Mappings
+def test_activation_function_mappings(valid_config_path):
+    parser = ConfigParser(valid_config_path)
+    layer_config = {'type': 'dense', 'dims': [128, 64], 'activation': 'relu'}
+    layer = parser.create_layer(layer_config)
+    assert isinstance(layer.activation, nn.ReLU)  # Assuming the DenseLayer class uses an 'activation' attribute
 
-def test_unkown_activation_function(incomplete_config_file):
-	config_path = incomplete_config_file
-	# Modify the file to include an unknown activation function
-	config_path.write_text(config_path.read_tect().replace("activation = 'relu'", "activation = 'unknown'"))
-	parser = ConfigParser(config_path)
-	# Assuminf the layer is still created but with a default activation function
-	assert len(parser.layers) == 0 	# No layers should be created
+# Test Configurations with Missing or Optional Fields
+def test_optional_config_fields(valid_config_path):
+    parser = ConfigParser(valid_config_path)
+    # Assuming default values for batch size and num epochs
+    assert parser.batch_size == 32  # Default specified in the fixture
+    assert parser.num_epochs == 20  # Default specified in the fixture

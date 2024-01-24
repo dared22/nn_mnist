@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 from lowrank.config_utils.config_parser import ConfigParser
+import os
+import glob
 
 class FeedForward(nn.Module):
     """
@@ -40,8 +42,8 @@ class FeedForward(nn.Module):
             A list of neural network layers to be applied in sequence.
         """
         super(FeedForward, self).__init__()
-        self.flatten = nn.Flatten()
         self.layers = nn.ModuleList(layers)
+        self.config_parser = None
 
     def forward(self, X):
         """
@@ -61,7 +63,6 @@ class FeedForward(nn.Module):
         """
 
         for layer in self.layers:
-            X = self.flatten(X)
             X = layer(X)
         return X
 
@@ -86,11 +87,11 @@ class FeedForward(nn.Module):
         """
         # Instantiate your configuration parser
         config_parser = ConfigParser(path)
-        # Use the parser to create FFN configuration
         # Extract layers from the configuration
         # Create an instance of FeedForward with these layers
-        return FeedForward(config_parser.create_multiple_layers())
-    
+        model = FeedForward(config_parser.layers)
+        model.config_parser = config_parser
+        return model
 
     def export_model(self, trained_nn, path):
         """
@@ -101,7 +102,7 @@ class FeedForward(nn.Module):
         """
         torch.save(trained_nn.state_dict(), path)
 
-    def import_model(self,nn,path): #not working for some reason!!!
+    def import_model(self,nn, path): 
         """
         Imports a neural network model's state dictionary from the specified path.
 
@@ -112,6 +113,29 @@ class FeedForward(nn.Module):
             The loaded neural network model with its state dictionary imported from the file.
         """ 
         nn.load_state_dict(torch.load(path))
+
+    @staticmethod
+    def mass_create_models(directory):
+        """
+        Creates a dictionary of FeedForward models from all .toml configuration files in the specified directory.
+
+        Parameters
+        ----------
+        directory : str
+            The path to the directory containing .toml configuration files.
+
+        Returns
+        -------
+        dict
+            A dictionary with filenames as keys (without the .toml extension) and instantiated FeedForward objects as values.
+        """
+        models = {}
+        # List all .toml files in the directory
+        for filepath in glob.glob(os.path.join(directory, '*.toml')):
+            filename = os.path.basename(filepath).rsplit('.', 1)[0]
+            model = FeedForward.create_from_config(filepath)
+            models[filename] = model
+        return models
 
   
     

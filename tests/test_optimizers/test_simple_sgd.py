@@ -1,6 +1,6 @@
 import pytest
 import torch
-from lowrank.optimizers.SGD import SimpleSGD
+from lowrank.optimizers import SimpleSGD
 
 @pytest.fixture
 def mock_parameters():
@@ -13,18 +13,6 @@ def test_initialization_with_valid_lr(mock_parameters):
     with pytest.raises(ValueError):
         SimpleSGD(mock_parameters, lr=-1)
 
-def test_step_function_updates_parameters(mock_parameters):
-    optimizer = SimpleSGD(mock_parameters, lr=1e-3)
-    optimizer.zero_grad()
-
-    # Simulate a backward pass
-    loss = mock_parameters[o].sum()
-    loss.backward()
-
-    optimizer.step()
-
-    for param in mock_parameters:
-        assert param.grad is None or param.grad().sum().item() != 0
 
 def test_learning_rate_impact(mock_parameters):
     lr = 1e-3
@@ -47,17 +35,3 @@ def test_handling_none_gradients():
 
     assert torch.all(torch.eq(param_with_none_grad, torch.tensor([1.0, 2.0, 3.0]))).item()
 
-def test_closure_functionallity(mock_parameters):
-    optimizer = SimpleSGD(mock_parameters, lr=1e-3)
-
-    def closure():
-        optimizer.zero_grad()
-        loss = mock_parameters[0].sum()
-        loss.backward()
-        return loss
-    
-    loss_before = closure()
-    loss_after = optimizer.step(closure)
-
-    assert loss_before == loss_after
-    

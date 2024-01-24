@@ -1,4 +1,6 @@
 import torch
+from datetime import datetime
+import time
 
 # def precision_recall_f1(y_pred, y_true, num_classes=10):
 #         with torch.no_grad():
@@ -67,4 +69,3 @@ def F1(outputs, labels):
     f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0   
     return f1
         
-     

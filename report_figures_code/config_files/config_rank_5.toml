@@ -1,0 +1,42 @@
+[[layer]]
+type = "flatten"
+
+[[layer]]
+type = "lowRank"
+dims = [ 784, 256,]
+activation = "relu"
+rank = 5
+
+[[layer]]
+type = "lowRank"
+dims = [ 256, 128,]
+activation = "relu"
+rank = 5
+
+[[layer]]
+type = "dense"
+dims = [ 128, 10,]
+activation = "linear"
+
+[settings]
+batchSize = 64
+numEpochs = 2
+architecture = "FFN"
+
+[optimizer.default]
+type = "SimpleSGD"
+
+[optimizer.lowRank]
+type = "DynamicLowRankOptimizer"
+
+[optimizer.vanillaLowRank]
+type = "SimpleSGD"
+
+[optimizer.default.parameters]
+lr = 0.005
+
+[optimizer.lowRank.parameters]
+lr = 0.03
+
+[optimizer.vanillaLowRank.parameters]
+lr = 0.005

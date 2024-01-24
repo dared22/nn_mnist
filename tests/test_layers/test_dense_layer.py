@@ -1,10 +1,10 @@
-from lowrank.layers.dense_layer import DenseLayer
+from lowrank.layers import DenseLayer
 import torch
 
 def test_initialization():
     layer  = DenseLayer(10, 5) 
 
-    # Check if weights are initialized with He initialization
+    # Check if weights are initialized to right shape
     assert layer.weight.shape == (10, 5)
     assert layer.bias.shape == (5,)
 

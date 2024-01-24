@@ -3,9 +3,7 @@ import torchvision.transforms as T
 from PIL import Image
 from lowrank.training.MNIST_downloader import Downloader
 
-def predict(model, pic_nr):
-    downloader = Downloader()
-    train, test = downloader.get_data()
+def predict(model, pic_nr, test):
     mnist_tensors = test.data
     mnist_labels = test.targets
     tensor = mnist_tensors[pic_nr]
