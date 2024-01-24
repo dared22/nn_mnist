@@ -4,6 +4,23 @@ from PIL import Image
 from lowrank.training.MNIST_downloader import Downloader
 
 def predict(model, pic_nr, test):
+    """
+    Predicts a digit from the MNIST dataset using a trained neural network model.
+
+    Parameters
+    ----------
+    model : torch.nn.Module
+        The trained neural network model for prediction.
+    pic_nr : int
+        The index of the image in the MNIST dataset to predict.
+    test : torchvision.datasets.MNIST
+        The MNIST dataset used for prediction.
+
+    Returns
+    -------
+    Tuple[int, int]
+        A tuple containing the predicted digit and the actual label of the image.
+    """
     mnist_tensors = test.data
     mnist_labels = test.targets
     tensor = mnist_tensors[pic_nr]
@@ -19,6 +36,14 @@ def predict(model, pic_nr, test):
     return prediction.item(), label.item()
 
 def show_image(tensor):
+    """
+    Displays a PIL image represented by a PyTorch tensor.
+
+    Parameters
+    ----------
+    tensor : torch.Tensor
+        The PyTorch tensor representing the image.
+    """
     transform = T.ToPILImage()
 
     # convert the tensor to PIL image using above transform

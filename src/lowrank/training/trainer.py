@@ -23,11 +23,16 @@ class Trainer:
         """
         Initializes the Trainer class.
 
-        Args:
-            model (nn.Module): The neural network model.
-            optimizer (torch.optim.Optimizer): The optimizer for training the model.
-            criterion (callable): The loss function used for training.
-            writer_dir (str): Directory for storing TensorBoard logs.
+        Parameters
+        ----------
+        model : nn.Module
+            The neural network model.
+        optimizer : torch.optim.Optimizer
+            The optimizer for training the model.
+        criterion : callable
+            The loss function used for training.
+        writer_dir : str, optional
+            Directory for storing TensorBoard logs, by default './runs'.
         """
         self.model = model
         self.optimizer = optimizer
@@ -42,13 +47,19 @@ class Trainer:
         """
         Trains the model and evaluates its performance on the test dataset.
 
-        Args:
-            train_dataloader (DataLoader): The DataLoader for training data.
-            test_dataloader (DataLoader): The DataLoader for test data.
-            patience (int): Number of epochs to wait for improvement before stopping.
+        Parameters
+        ----------
+        train_dataloader : DataLoader
+            The DataLoader for training data.
+        test_dataloader : DataLoader
+            The DataLoader for test data.
+        patience : int, optional
+            Number of epochs to wait for improvement before stopping, by default 3.
 
-        Returns:
-            (nn.Module, list): The trained model and the training log.
+        Returns
+        -------
+        (nn.Module, list)
+            The trained model and the training log.
         """
         for epoch in range(self.num_epochs):
             train_loss = self._train_epoch(train_dataloader, epoch)
@@ -81,12 +92,17 @@ class Trainer:
         """
         Conducts a single training epoch.
 
-        Args:
-            train_dataloader (DataLoader): The DataLoader for training data.
-            epoch (int): The current epoch number.
+        Parameters
+        ----------
+        train_dataloader : DataLoader
+            The DataLoader for training data.
+        epoch : int
+            The current epoch number.
 
-        Returns:
-            float: The average training loss for the epoch.
+        Returns
+        -------
+        float
+            The average training loss for the epoch.
         """
         train_loss = 0.0
         for _, (images, labels) in enumerate(tqdm(train_dataloader, desc=f'Epoch {epoch+1}/{self.num_epochs}')):
@@ -102,12 +118,17 @@ class Trainer:
         """
         Evaluates the model on the test dataset.
 
-        Args:
-            test_dataloader (DataLoader): The DataLoader for test data.
+        Parameters
+        ----------
+        test_dataloader : DataLoader
+            The DataLoader for test data.
 
-        Returns:
-            (float, float): Validation accuracy and validation loss.
+        Returns
+        -------
+        (float, float)
+            Validation accuracy and validation loss.
         """
+
         self.model.eval()
         val_loss = 0.0
         correct = 0
@@ -127,12 +148,17 @@ class Trainer:
         """
         Checks if early stopping criteria are met.
 
-        Args:
-            validation_loss (float): The validation loss for the current epoch.
-            patience (int): The number of epochs to wait for improvement before stopping.
+        Parameters
+        ----------
+        validation_loss : float
+            The validation loss for the current epoch.
+        patience : int
+            The number of epochs to wait for improvement before stopping.
 
-        Returns:
-            bool: True if early stopping criteria are met, False otherwise.
+        Returns
+        -------
+        bool
+            True if early stopping criteria are met, False otherwise.
         """
         if validation_loss < self.best_accuracy - 0.01:
             self.early_stopping_counter = 0
@@ -148,12 +174,17 @@ class Trainer:
         Create a Trainer instance from an existing model. This model should have a config_parser attribute 
         (i.e. the model should have been created using the FeedForward.create_from_config method).
 
-        Args:
-            model (nn.Module): The neural network model.
-            writer_dir (str): Directory for TensorBoard logs.
+        Parameters
+        ----------
+        model : nn.Module
+            The neural network model.
+        writer_dir : str, optional
+            Directory for TensorBoard logs, by default './runs'.
 
-        Returns:
-            Trainer: An instance of the Trainer class.
+        Returns
+        -------
+        Trainer
+            An instance of the Trainer class.
         """
         optimizer_config = model.config_parser.optimizer_config
         optimizer = MetaOptimizer(model, optimizer_config)

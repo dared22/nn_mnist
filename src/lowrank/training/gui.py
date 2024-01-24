@@ -19,24 +19,37 @@ from lowrank.config_utils.config_parser import ConfigParser
 
 class GUI:
     """
-    A class representing the Graphical User Interface for a neural network training and prediction application.
+    Graphical User Interface for a neural network training and prediction application.
 
-    Attributes:
-        app: The main application window for the GUI.
-        _selected_filename (str): The path of the selected file.
-        batchSize (int): Batch size for training, read from config.
-        testdataset (Dataset): The test dataset used for prediction.
-        _trainloader (DataLoader): DataLoader for training data.
-        _testloader (DataLoader): DataLoader for test data.
-        _NeuralNet (nn.Module): The neural network model.
+    Parameters
+    ----------
+    app : tkinter.Tk or customtkinter.CTk
+        The main application window for the GUI.
+
+    Attributes
+    ----------
+    _selected_filename : str
+        Path of the selected file.
+    batchSize : int
+        Batch size for training, read from the configuration file.
+    testdataset : Dataset
+        The test dataset used for prediction.
+    _trainloader : DataLoader
+        DataLoader for training data.
+    _testloader : DataLoader
+        DataLoader for test data.
+    _NeuralNet : nn.Module
+        The neural network model.
     """
 
     def __init__(self, app):
         """
         Initializes the GUI with necessary widgets and configurations.
 
-        Args:
-            app: The root or main window of the application where widgets are placed.
+        Parameters
+        ----------
+        app : tkinter.Tk or customtkinter.CTk
+            The root or main window of the application where widgets are placed.
         """
         self.app = app
         self.app.title("Enhanced GUI with CustomTkinter")
@@ -71,20 +84,40 @@ class GUI:
 
     class TextRedirector(object):
         """
-        A class to redirect the standard output to a tkinter widget.
+        Redirects the standard output to a tkinter widget.
 
-        Attributes:
-            widget: The tkinter widget where the output will be redirected.
+        Attributes
+        ----------
+        widget : tkinter.Text or customtkinter.CTkScrolledText
+            The tkinter widget where the output will be redirected.
         """
         def __init__(self, widget):
+            """
+            Parameters
+            ----------
+            widget : tkinter.Text or customtkinter.CTkScrolledText
+                The tkinter widget where the output will be redirected.
+            """
             self.widget = widget
 
         def write(self, str):
+            """
+            Write the string to the widget.
+
+            Parameters
+            ----------
+            str : str
+                The string to be written to the widget.
+            """
             self.widget.insert(ctk.END, str)
             self.widget.see(ctk.END)
             self.widget.update_idletasks()
 
         def flush(self): 
+            """
+            Flush the widget's content. This method is a placeholder to comply with 
+            standard output's interface.
+            """
             pass
 
     def create_widgets(self):
@@ -145,13 +178,17 @@ class GUI:
 
     def train_nn(self, nn):
         """
-        Trains a given neural network model and returns the trained model and training log.
+        Trains a given neural network model.
 
-        Args:
-            nn (nn.Module): The neural network model to train.
+        Parameters
+        ----------
+        nn : nn.Module
+            The neural network model to be trained.
 
-        Returns:
-            A tuple of the trained neural network model and the training log.
+        Returns
+        -------
+        tuple
+            A tuple containing the trained neural network model and the training log.
         """
         trainer = Trainer.create_from_model(nn) 
         trained_nn, training_log = trainer.train(self._trainloader, self._testloader)
@@ -160,10 +197,12 @@ class GUI:
 
     def start_training_thread(self, nn):
         """
-        Starts the training process in a separate thread.
+        Starts the training process of a neural network model in a separate thread.
 
-        Args:
-            nn : The neural network model to train.
+        Parameters
+        ----------
+        nn : nn.Module
+            The neural network model to be trained.
         """
         training_thread = threading.Thread(target=self.train_nn, args=(nn,))
         training_thread.start()
@@ -173,12 +212,17 @@ class GUI:
         """
         Opens a file dialog to browse and select files.
 
-        Args:
-            title (str): The title of the file dialog.
-            type (tuple): The filetype filter.
+        Parameters
+        ----------
+        title : str
+            The title of the file dialog.
+        filetypes : tuple
+            The filetype filter for the file dialog.
 
-        Returns:
-            str: The path of the selected file.
+        Returns
+        -------
+        str
+            The path of the selected file, or None if no file is selected.
         """
         filename = filedialog.askopenfilename(initialdir="/", title=title, filetypes=type)
         self.label_file_explorer.configure(text="File Opened: " + filename)
@@ -278,13 +322,19 @@ class GUI:
             """
             Extracts an image from a canvas, resizes it, and returns the image.
 
-            Args:
-                canvas: The canvas from which to capture the image.
-                width (int): The width to resize the image to.
-                height (int): The height to resize the image to.
+            Parameters
+            ----------
+            canvas : ctk.CTkCanvas
+                The canvas from which to capture the image.
+            width : int
+                The width to resize the image to.
+            height : int
+                The height to resize the image to.
 
-            Returns:
-                Image: The extracted and resized image.
+            Returns
+            -------
+            PIL.Image
+                The extracted and resized image.
             """
             ps = canvas.postscript(colormode='color')
             img = Image.open(io.BytesIO(ps.encode('utf-8'))) # Create a PIL image from the canvas content
@@ -295,11 +345,15 @@ class GUI:
             """
             Processes the image by converting it to grayscale and normalizing.
 
-            Args:
-                img (Image): The image to be processed.
+            Parameters
+            ----------
+            img : PIL.Image
+                The image to be processed.
 
-            Returns:
-                ndarray: The processed image array.
+            Returns
+            -------
+            ndarray
+                The processed image array.
             """
             img = img.convert('L')# Convert to grayscale
             img = ImageOps.invert(img) # Convert PIL image to NumPy array
@@ -310,12 +364,16 @@ class GUI:
         def image_to_tensor(img):
             """
             Converts an image to a PyTorch tensor.
-
-            Args:
-                img: The image to be converted.
-
-            Returns:
-                Tensor: The image converted to a PyTorch tensor.
+        
+            Parameters
+            ----------
+            img : ndarray
+                The image to be converted.
+        
+            Returns
+            -------
+            Tensor
+                The image converted to a PyTorch tensor.
             """
             tensor = torch.tensor(img, dtype=torch.float32)
             tensor = tensor.unsqueeze(0) 
