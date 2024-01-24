@@ -1,5 +1,5 @@
-from lowrank.training.neural_network import FeedForward
-from lowrank.training.trainer import Trainer
+from lowrank.training import FeedForward
+from lowrank.training import Trainer
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
 import pandas as pd
@@ -8,6 +8,8 @@ from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 import os
 import toml
+
+mass_generate_configs = True
 
 # ------------------ Utility functions ------------------
 
@@ -30,9 +32,6 @@ print(total_params_dense)
 
 # ------------------ Data Prep ------------------
 
-# Define the transformation pipeline
-# Include scaling, random rotation, and random translation
-# Transformation for training data (with data augmentation)
 train_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.RandomRotation(degrees=15),
@@ -52,52 +51,47 @@ test_data = datasets.MNIST(root='data', train=False, transform=test_transform, d
 train_loader = DataLoader(train_data, batch_size=64, shuffle=True)
 test_loader = DataLoader(test_data, batch_size=64, shuffle=False)  # Usually, shuffling is not needed for test data
 
-
-print("Current Working Directory: ", os.getcwd())
 # ------------------ Creating config files------------------
 
-def modify_and_save_config(original_config_path, new_config_dir, rank):
-    # Load the original configuration file
-    with open(original_config_path, 'r') as file:
-        config = toml.load(file)
+if mass_generate_configs:
+    def modify_and_save_config(original_config_path, new_config_dir, rank):
+        # Load the original configuration file
+        with open(original_config_path, 'r') as file:
+            config = toml.load(file)
 
-    # Update the rank for each lowRank layer
-    for layer in config.get('layer', []):
-        if layer['type'] == 'lowRank':
-            layer['rank'] = rank
+        # Update the rank for each lowRank layer
+        for layer in config.get('layer', []):
+            if layer['type'] == 'lowRank':
+                layer['rank'] = rank
 
-    # Create a new config file name based on the rank
-    new_config_filename = f"config_rank_{rank}.toml"
-    new_config_path = os.path.join(new_config_dir, new_config_filename)
+        # Create a new config file name based on the rank
+        new_config_filename = f"config_rank_{rank}.toml"
+        new_config_path = os.path.join(new_config_dir, new_config_filename)
 
-    # Save the modified configuration to a new file
-    with open(new_config_path, 'w') as file:
-        toml.dump(config, file)
+        # Save the modified configuration to a new file
+        with open(new_config_path, 'w') as file:
+            toml.dump(config, file)
 
-# Specify the original config file path and the directory to save new configs
-original_config_path = 'report_figures_code/config_files/basedynamiclowrank.toml'  # Replace with your config file path
-new_config_dir = 'report_figures_code/config_files'  # Directory to store new config files
-os.makedirs(new_config_dir, exist_ok=True)  # Create the directory if it doesn't exist
+    # Specify the original config file path and the directory to save new configs
+    original_config_path = 'report_figures_code/config_files/basedynamiclowrank.toml'  # Replace with your config file path
+    new_config_dir = 'report_figures_code/config_files'  # Directory to store new config files
+    os.makedirs(new_config_dir, exist_ok=True)  # Create the directory if it doesn't exist
 
-# Create a new config file for each rank from 1 to 64
-for rank in range(5, 50):
-    modify_and_save_config(original_config_path, new_config_dir, rank)
+    # Create a new config file for each rank from 1 to 64
+    for rank in range(5, 6, 5):
+        modify_and_save_config(original_config_path, new_config_dir, rank)
 
 
-def train_model(config_path):
+def train_model(model):
     # Create model and trainer from config
-    model = FeedForward.create_from_config(config_path)
-    trainer = Trainer(model)
+    trainer = Trainer.create_from_model(model)
+    train_output = trainer.train(train_loader, test_loader)
+    return train_output[1]
 
-    # Train the model for one epoch and return validation accuracy
-    # Assuming train function returns validation accuracy
-    val_accuracy = trainer.train(train_loader, test_loader)
-    return val_accuracy
 
 # ------------------ Training ------------------
-config_path = "report_figures_code/config_files/config_rank_49.toml"
-model, train_log = train_model(config_path)
-# find best test accuracy and epoch number
-best_accuracy = max(train_log, key=lambda x: x['val_accuracy'])
-print(best_accuracy)
-print(f"Rank: {rank}, Validation Accuracy:")
+dataframe = pd.DataFrame(columns=['rank', 'accuracy'])
+models = FeedForward.mass_create_models('report_figures_code/config_files')
+
+final_output = [train_model(model) for model in models.values()]
+print(final_output)
