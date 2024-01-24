@@ -9,18 +9,18 @@ rank = 5
 
 [[layer]]
 type = "lowRank"
-dims = [ 256, 64,]
+dims = [ 256, 128,]
 activation = "relu"
 rank = 5
 
 [[layer]]
 type = "dense"
-dims = [ 64, 10,]
+dims = [ 128, 10,]
 activation = "linear"
 
 [settings]
 batchSize = 64
-numEpochs = 1
+numEpochs = 2
 architecture = "FFN"
 
 [optimizer.default]
@@ -36,7 +36,7 @@ type = "SimpleSGD"
 lr = 0.005
 
 [optimizer.lowRank.parameters]
-lr = 0.1
+lr = 0.03
 
 [optimizer.vanillaLowRank.parameters]
 lr = 0.005
