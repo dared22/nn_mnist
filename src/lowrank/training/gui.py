@@ -136,6 +136,8 @@ class GUI:
         for  path in paths:
             nn = FeedForward.create_from_config(path)
             trained_nn, training_log = self.train_nn(nn)
+            model_save_path = f'./data/trained_model_from_file_{path[-11:-4]}.pt'
+            trained_nn.export_model(trained_nn, model_save_path)
             nns.append((training_log,path[-11:-4])) #cut out rest of the path for visibility
         print(nns)
             
